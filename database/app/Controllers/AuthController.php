@@ -21,9 +21,15 @@ class AuthController extends Controller {
         $user = $userModel->findByUsername($username);
 
         if ($user && password_verify($password, $user['password'])) {
+            if ($user['status'] !== 'active') {
+                $this->view('auth/login', ['error' => 'Account is disabled']);
+                return;
+            }
+            
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
+            $_SESSION['theme'] = $user['theme'];
             
             if ($user['role'] === 'admin') {
                 $this->redirect('/dashboard');

@@ -54,4 +54,22 @@ class UserController extends Controller {
         }
         $this->redirect('/users');
     }
+
+    public function updateTheme() {
+        if (!isset($_SESSION['user_id'])) {
+            $this->json(['success' => false, 'message' => 'Not logged in']);
+            return;
+        }
+
+        $theme = $_POST['theme'] ?? 'light';
+        if (!in_array($theme, ['light', 'dark'])) {
+            $theme = 'light';
+        }
+
+        $userModel = new User();
+        $userModel->updateTheme($_SESSION['user_id'], $theme);
+        $_SESSION['theme'] = $theme;
+
+        $this->json(['success' => true]);
+    }
 }

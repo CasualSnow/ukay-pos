@@ -41,4 +41,11 @@ $router->add('GET', '/returns', 'ReturnController@index');
 $router->add('GET', '/api/sale-items/{id}', 'ReturnController@getSaleItems');
 $router->add('POST', '/returns/process', 'ReturnController@process');
 
+$router->add('GET', '/staff', 'StaffController@index');
+$router->add('POST', '/staff/add', 'StaffController@add');
+$router->add('POST', '/staff/toggle-status', 'StaffController@toggleStatus');
+$router->add('POST', '/staff/delete', 'StaffController@delete');
+
+$router->add('POST', '/user/update-theme', 'UserController@updateTheme');
+
 $router->run();

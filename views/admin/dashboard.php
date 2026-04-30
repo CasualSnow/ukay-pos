@@ -16,14 +16,14 @@ $categoryStats = $categoryStats ?? [];
 $base_url = $base_url ?? '';
 ?>
 
-<div x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" class="flex min-h-screen" :class="{ 'dark': darkMode }">
+<div x-data="dashboardApp()" x-init="init()" class="flex min-h-screen transition-all duration-300" :class="{ 'dark': darkMode }">
     <?php require_once __DIR__ . '/../layouts/sidebar.php'; ?>
 
     <main class="flex-1 ml-20 md:ml-64 bg-background min-h-screen p-8 transition-soft">
         <header class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-primary tracking-tight">Business Overview</h1>
-                <p class="text-sm text-secondary font-medium">Monitoring your thrift shop's performance</p>
+                <h1 class="text-2xl font-extrabold text-primary tracking-tight">Business Overview</h1>
+                
             </div>
             <div class="flex items-center gap-3">
                 <div class="px-4 py-2 bg-surface rounded-lg border border-border flex items-center gap-2 shadow-sm">
@@ -125,5 +125,20 @@ $base_url = $base_url ?? '';
         </div>
     </main>
 </div>
+
+<script>
+function dashboardApp() {
+    return {
+        darkMode: localStorage.getItem('darkMode') === 'true' || '<?php echo $_SESSION['theme'] ?? 'light'; ?>' === 'dark',
+
+        init() {
+            this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
+            window.addEventListener('darkModeChanged', (e) => {
+                this.darkMode = e.detail;
+            });
+        }
+    };
+}
+</script>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>

@@ -1,13 +1,13 @@
 <?php require_once __DIR__ . '/../layouts/header.php'; ?>
 
-<div x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', showModal: false, editMode: false, currentItem: {} }" class="flex min-h-screen" :class="{ 'dark': darkMode }">
+<div x-data="inventoryApp()" x-init="init()" class="flex min-h-screen" :class="{ 'dark': darkMode }">
     <?php require_once __DIR__ . '/../layouts/sidebar.php'; ?>
 
-    <main class="flex-1 ml-20 md:ml-64 bg-background min-h-screen p-8 transition-soft">
+    <main class="flex-1 ml-20 md:ml-64 bg-background min-h-screen p-8 transition-all duration-300">
         <header class="flex justify-between items-center mb-10">
             <div>
-                <h1 class="text-2xl font-bold text-primary tracking-tight">Inventory Management</h1>
-                <p class="text-sm text-secondary font-medium">Add, edit, or remove items from your store</p>
+                <h1 class="text-2xl font-extrabold text-primary tracking-tight">Inventory Management</h1>
+                
             </div>
             <button @click="editMode = false; currentItem = {}; showModal = true" 
                 class="bg-accent text-white px-5 py-2.5 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-accent-hover transition-all shadow-sm">
@@ -152,5 +152,23 @@
     }
     .scale-in { animation: scale-in 0.2s ease-out forwards; }
 </style>
+
+<script>
+function inventoryApp() {
+    return {
+        darkMode: localStorage.getItem('darkMode') === 'true' || '<?php echo $_SESSION['theme'] ?? 'light'; ?>' === 'dark',
+        showModal: false,
+        editMode: false,
+        currentItem: {},
+
+        init() {
+            this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
+            window.addEventListener('darkModeChanged', (e) => {
+                this.darkMode = e.detail;
+            });
+        }
+    };
+}
+</script>
 
 <?php require_once __DIR__ . '/../layouts/footer.php'; ?>

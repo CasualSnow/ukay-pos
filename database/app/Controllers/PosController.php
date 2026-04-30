@@ -8,6 +8,41 @@ class PosController extends Controller {
         }
     }
 
+    private function expireReservations() {
+        $db = getDB();
+        $stmtCheckExpire = $db->query("SHOW COLUMNS FROM reservations LIKE 'expiration_date'");
+        $hasExpiration = $stmtCheckExpire->fetch() !== false;
+        if (!$hasExpiration) {
+            return;
+        }
+
+        $stmt = $db->prepare(
+            "SELECT r.id, r.item_id
+            FROM reservations r
+            WHERE r.status IN ('reserved', 'pending')
+            AND r.expiration_date IS NOT NULL
+            AND r.expiration_date < NOW()"
+        );
+        $stmt->execute();
+        $expiredReservations = $stmt->fetchAll();
+
+        foreach ($expiredReservations as $res) {
+            try {
+                $db->beginTransaction();
+                $stmtUpdateRes = $db->prepare('UPDATE reservations SET status = ? WHERE id = ?');
+                $stmtUpdateRes->execute(['expired', $res['id']]);
+
+                $stmtUpdateItem = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
+                $stmtUpdateItem->execute(['available', $res['item_id']]);
+                $db->commit();
+            } catch (Exception $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+            }
+        }
+    }
+
     public function index() {
         $itemModel = new Item();
         $categories = $itemModel->getCategories();
@@ -15,6 +50,8 @@ class PosController extends Controller {
     }
 
     public function getItems() {
+        $this->expireReservations();
+
         $category = $_GET['category'] ?? null;
         $search = $_GET['search'] ?? null;
         

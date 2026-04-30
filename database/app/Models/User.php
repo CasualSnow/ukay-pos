@@ -6,4 +6,9 @@ class User extends Model {
         $stmt->execute([$username]);
         return $stmt->fetch();
     }
+
+    public function updateTheme($userId, $theme) {
+        $stmt = $this->db->prepare("UPDATE users SET theme = ? WHERE id = ?");
+        $stmt->execute([$theme, $userId]);
+    }
 }

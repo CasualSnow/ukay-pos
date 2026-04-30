@@ -263,7 +263,13 @@ $base_url = $base_url ?? '';
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Contact Number *</label>
-                        <input type="text" x-model="contactNumber" required placeholder="09XX XXX XXXX"
+                        <input type="text" x-model="contactNumber" inputmode="numeric" maxlength="11" required placeholder="09XXXXXXXXX"
+                            @input="contactNumber = contactNumber.replace(/[^0-9]/g, '').slice(0, 11)"
+                            class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Reservation Duration (in days) *</label>
+                        <input type="number" x-model="durationDays" min="1" step="1" required placeholder="Number of days"
                             class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
                     </div>
                     <div>
@@ -333,7 +339,7 @@ $base_url = $base_url ?? '';
 <script>
 function posApp() {
     return {
-        darkMode: localStorage.getItem('darkMode') === 'true',
+        darkMode: localStorage.getItem('darkMode') === 'true' || '<?php echo $_SESSION['theme'] ?? 'light'; ?>' === 'dark',
         loading: false,
         items: [],
         cart: [],
@@ -346,6 +352,7 @@ function posApp() {
         customerName: '',
         contactNumber: '',
         notes: '',
+        durationDays: 1,
         cashReceived: 0,
         change: 0,
         baseUrl: '<?php echo trim($base_url, '/'); ?>',
@@ -439,6 +446,7 @@ function posApp() {
             this.customerName = '';
             this.contactNumber = '';
             this.notes = '';
+            this.durationDays = 1;
             this.reservationModal = true;
         },
 
@@ -451,14 +459,25 @@ function posApp() {
                 this.showToast('Please enter contact number', 'error');
                 return;
             }
+            const sanitizedContact = this.contactNumber.replace(/\D/g, '');
+            if (!/^\d{11}$/.test(sanitizedContact)) {
+                this.showToast('Contact number must be exactly 11 digits', 'error');
+                return;
+            }
+            this.durationDays = parseInt(this.durationDays, 10);
+            if (isNaN(this.durationDays) || this.durationDays <= 0) {
+                this.showToast('Reservation duration must be at least 1 day', 'error');
+                return;
+            }
             console.log('Submitting reservation for:', this.customerName);
             this.loading = true;
             
             const formData = new FormData();
             formData.append('item_id', this.reservingItem.id);
             formData.append('customer_name', this.customerName);
-            formData.append('contact_number', this.contactNumber);
+            formData.append('contact_number', sanitizedContact);
             formData.append('notes', this.notes);
+            formData.append('duration_days', this.durationDays);
 
             const endpoint = this.resolveUrl('/reservations/add');
             fetch(endpoint, {

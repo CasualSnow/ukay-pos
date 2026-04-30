@@ -7,32 +7,35 @@ $reservations = $reservations ?? [];
 $base_url = $base_url ?? '';
 ?>
 
-<div x-data="{ 
-    darkMode: localStorage.getItem('darkMode') === 'true',
-    showPaymentModal: false,
-    selectedReservation: null,
-    paymentMethod: 'cash',
-    getDiscountedPrice(price, tagColor) {
-        const discounts = {
-            'red': 0.50,
-            'blue': 0.30,
-            'green': 0.20,
-            'yellow': 0.00
-        };
-        const rate = discounts[tagColor] || 0;
-        return price - (price * rate);
-    }
-}" class="flex min-h-screen" :class="{ 'dark': darkMode }">
+<div x-data="reservationsApp()" x-init="init()" class="flex min-h-screen">
     <?php require_once __DIR__ . '/../layouts/sidebar.php'; ?>
 
     <main class="flex-1 ml-20 md:ml-64 bg-background min-h-screen p-8">
         <header class="mb-10">
-            <h1 class="text-2xl font-bold text-primary tracking-tight">Customer Reservations</h1>
-            <p class="text-sm text-secondary font-medium">Track and manage items put on hold by customers</p>
+            <h1 class="text-2xl font-extrabold text-primary tracking-tight">Customer Reservations</h1>
+           
         </header>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <?php foreach ($reservations as $res): ?>
+            <?php foreach ($reservations as $res): 
+                $remainingDays = null;
+                $hasExpirationDate = isset($res['expiration_date']) && !empty($res['expiration_date']);
+                if (isset($res['duration_days']) && $res['duration_days'] !== null && $res['duration_days'] !== '') {
+                    $durationDays = (int) $res['duration_days'];
+                } elseif ($hasExpirationDate && isset($res['created_at']) && !empty($res['created_at'])) {
+                    $created = new DateTime($res['created_at']);
+                    $expiration = new DateTime($res['expiration_date']);
+                    $durationDays = $created->diff($expiration)->days;
+                } else {
+                    $durationDays = null;
+                }
+                if ($hasExpirationDate && in_array($res['status'], ['reserved', 'pending'])) {
+                    $expiration = new DateTime($res['expiration_date']);
+                    $now = new DateTime();
+                    $interval = $now->diff($expiration);
+                    $remainingDays = $interval->invert ? -1 : $interval->days;
+                }
+            ?>
             <div class="bg-surface rounded-xl p-6 shadow-sm border border-border transition-all hover:border-accent/30 relative group/card">
                 <div class="flex items-start justify-between mb-6">
                     <div class="flex items-center gap-4">
@@ -45,16 +48,21 @@ $base_url = $base_url ?? '';
                     
                     <div class="flex flex-col items-end gap-2">
                         <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider <?php 
-                            echo $res['status'] == 'reserved' || $res['status'] == 'pending' ? 'bg-yellow-50 text-yellow-600 border border-yellow-100' : ($res['status'] == 'paid' ? 'bg-blue-50 text-blue-600 border border-blue-100' : ($res['status'] == 'completed' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100')); 
+                            echo $res['status'] == 'reserved' || $res['status'] == 'pending' ? 'bg-yellow-50 text-yellow-600 border border-yellow-100' : 
+                                ($res['status'] == 'paid' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 
+                                ($res['status'] == 'completed' ? 'bg-green-50 text-green-600 border border-green-100' : 
+                                ($res['status'] == 'expired' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-red-50 text-red-600 border border-red-100'))); 
                         ?>"><?php echo $res['status']; ?></span>
                         
                         <!-- Delete Reservation -->
+                        <?php if (in_array($res['status'], ['reserved', 'pending'])): ?>
                         <form action="<?php echo $base_url; ?>/reservations/delete" method="POST" class="opacity-0 group-hover/card:opacity-100 transition-opacity z-10" onsubmit="return confirm('Are you sure you want to delete this reservation?')">
                             <input type="hidden" name="id" value="<?php echo $res['id']; ?>">
                             <button type="submit" class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
                             </button>
                         </form>
+                        <?php endif; ?>
                     </div>
                 </div>
                 
@@ -66,7 +74,30 @@ $base_url = $base_url ?? '';
                         </div>
                         <p class="font-bold text-primary text-sm"><?php echo $res['customer_name']; ?></p>
                         <?php if (!empty($res['contact_number'])): ?>
-                            <p class="text-[10px] text-secondary font-medium mt-0.5"><i class="fa-solid fa-phone text-[8px] mr-1"></i><?php echo $res['contact_number']; ?></p>
+                        <p class="text-[10px] text-secondary font-medium mt-0.5"><i class="fa-solid fa-phone text-[8px] mr-1"></i><?php echo $res['contact_number']; ?></p>
+                        <?php endif; ?>
+                    </div>
+                    
+                    <div class="pt-2 border-t border-border/50">
+                        <div class="flex items-center gap-2 text-accent mb-1">
+                            <i class="fa-solid fa-calendar-check text-xs"></i>
+                            <span class="text-[10px] font-bold uppercase tracking-widest">Reservation Details</span>
+                        </div>
+                        <p class="text-sm font-bold text-primary mb-1">
+                            <i class="fa-solid fa-hourglass-half text-accent text-xs mr-1"></i>
+                            Duration: <?php echo $durationDays !== null ? $durationDays : 'N/A'; ?><?php echo $durationDays !== null ? ' day' . ($durationDays > 1 ? 's' : '') : ''; ?>
+                        </p>
+                        <?php if ($hasExpirationDate): ?>
+                        <p class="text-xs text-secondary mb-1">
+                            <i class="fa-solid fa-calendar-xmark text-secondary/40 mr-1"></i>
+                            Expires: <?php echo date('F d, Y', strtotime($res['expiration_date'])); ?>
+                        </p>
+                        <?php endif; ?>
+                        <?php if ($remainingDays !== null && $remainingDays >= 0): ?>
+                        <p class="text-xs font-bold <?php echo $remainingDays <= 1 ? 'text-red-600 bg-red-50 px-2 py-1 rounded-full' : 'text-green-600 bg-green-50 px-2 py-1 rounded-full'; ?>">
+                            <i class="fa-solid fa-bolt mr-1"></i>
+                            <?php echo $remainingDays; ?> day<?php echo $remainingDays > 1 ? 's' : ''; ?> remaining
+                        </p>
                         <?php endif; ?>
                     </div>
                     
@@ -96,6 +127,10 @@ $base_url = $base_url ?? '';
                     <button disabled class="w-full bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs cursor-not-allowed opacity-80">
                         Payment Verified
                     </button>
+                    <?php elseif ($res['status'] == 'expired'): ?>
+                    <button disabled class="w-full bg-red-50 text-red-600 py-2.5 rounded-lg font-bold text-xs cursor-not-allowed border border-red-100">
+                        Reservation Expired
+                    </button>
                     <?php else: ?>
                     <button disabled class="w-full bg-background text-secondary/40 border border-border py-2.5 rounded-lg font-bold text-xs cursor-not-allowed">
                         <?php echo ucfirst($res['status']); ?>
@@ -116,9 +151,9 @@ $base_url = $base_url ?? '';
                         </form>
                         <form action="<?php echo $base_url; ?>/reservations/cancel" method="POST">
                             <input type="hidden" name="id" value="<?php echo $res['id']; ?>">
-                            <button type="submit" <?php echo ($res['status'] == 'completed' || $res['status'] == 'cancelled') ? 'disabled' : ''; ?>
+                            <button type="submit" <?php echo ($res['status'] == 'completed' || $res['status'] == 'cancelled' || $res['status'] == 'expired') ? 'disabled' : ''; ?>
                                 class="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all <?php 
-                                    echo ($res['status'] == 'completed' || $res['status'] == 'cancelled')
+                                    echo ($res['status'] == 'completed' || $res['status'] == 'cancelled' || $res['status'] == 'expired')
                                     ? 'bg-background text-secondary/20 border border-border cursor-not-allowed'
                                     : 'bg-background text-red-600 border border-red-100 hover:bg-red-600 hover:text-white';
                                 ?>">
@@ -202,6 +237,33 @@ $base_url = $base_url ?? '';
         </div>
     </main>
 </div>
+
+<script>
+function reservationsApp() {
+    return {
+        darkMode: localStorage.getItem('darkMode') === 'true' || '<?php echo $_SESSION['theme'] ?? 'light'; ?>' === 'dark',
+        showPaymentModal: false,
+        selectedReservation: null,
+        paymentMethod: 'cash',
+        init() {
+            this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
+            window.addEventListener('darkModeChanged', (e) => {
+                this.darkMode = e.detail;
+            });
+        },
+        getDiscountedPrice(price, tagColor) {
+            const discounts = {
+                'red': 0.50,
+                'blue': 0.30,
+                'green': 0.20,
+                'yellow': 0.00
+            };
+            const rate = discounts[tagColor] || 0;
+            return price - (price * rate);
+        }
+    }
+}
+</script>
 
 <style>
     @keyframes scale-in {

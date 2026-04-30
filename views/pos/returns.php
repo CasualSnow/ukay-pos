@@ -5,8 +5,8 @@
 
     <main class="flex-1 ml-20 md:ml-64 bg-gray-50 dark:bg-gray-900 min-h-screen p-8">
         <header class="mb-10">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Process Returns</h1>
-            <p class="text-gray-500 dark:text-gray-400">Restore items to inventory from previous sales</p>
+            <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white">Process Returns</h1>
+        
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">

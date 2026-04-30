@@ -5,10 +5,57 @@ class ReservationController extends Controller {
         if (!isset($_SESSION['user_id'])) {
             $this->redirect('/');
         }
+        $db = getDB();
+        $this->checkAndExpireReservations($db);
+    }
+
+    private function checkAndExpireReservations($db) {
+        // Check if expiration_date column exists first
+        $stmtCheckExpire = $db->query("SHOW COLUMNS FROM reservations LIKE 'expiration_date'");
+        $hasExpiration = $stmtCheckExpire->fetch() !== false;
+        
+        if (!$hasExpiration) {
+            return;
+        }
+
+        // Find all active reservations that are expired
+        $stmt = $db->prepare("
+            SELECT r.id, r.item_id 
+            FROM reservations r 
+            WHERE r.status IN ('reserved', 'pending') 
+            AND r.expiration_date IS NOT NULL 
+            AND r.expiration_date < NOW()
+        ");
+        $stmt->execute();
+        $expiredReservations = $stmt->fetchAll();
+
+        foreach ($expiredReservations as $res) {
+            try {
+                $db->beginTransaction();
+
+                // Mark reservation as expired
+                $stmtUpdateRes = $db->prepare('UPDATE reservations SET status = ? WHERE id = ?');
+                $stmtUpdateRes->execute(['expired', $res['id']]);
+
+                // Set item back to available
+                $stmtUpdateItem = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
+                $stmtUpdateItem->execute(['available', $res['item_id']]);
+
+                $db->commit();
+            } catch (Exception $e) {
+                if ($db->inTransaction()) {
+                    $db->rollBack();
+                }
+            }
+        }
     }
 
     public function index() {
         $db = getDB();
+
+        // First, check and expire any expired reservations
+        $this->checkAndExpireReservations($db);
+
         $reservations = $db->query("
             SELECT r.*, i.name as item_name, i.price, i.image_url, i.tag_color
             FROM reservations r 
@@ -28,6 +75,14 @@ class ReservationController extends Controller {
             $customerName = trim($json['customer_name'] ?? $_POST['customer_name'] ?? '');
             $contactNumber = trim($json['contact_number'] ?? $_POST['contact_number'] ?? '');
             $notes = trim($json['notes'] ?? $_POST['notes'] ?? '');
+            $durationDays = isset($json['duration_days']) ? (int)$json['duration_days'] : (isset($_POST['duration_days']) ? (int)$_POST['duration_days'] : 1);
+
+            $contactNumber = preg_replace('/\D+/', '', $contactNumber);
+
+            // Validate duration
+            if ($durationDays <= 0) {
+                throw new Exception('Reservation duration must be at least 1 day.');
+            }
 
             if (!$itemId) {
                 throw new Exception('Item ID is required.');
@@ -37,6 +92,9 @@ class ReservationController extends Controller {
             }
             if (empty($contactNumber)) {
                 throw new Exception('Contact number is required.');
+            }
+            if (!preg_match('/^\d{11}$/', $contactNumber)) {
+                throw new Exception('Contact number must contain exactly 11 digits.');
             }
 
             $db->beginTransaction();
@@ -58,8 +116,11 @@ class ReservationController extends Controller {
                 $statusValue = 'pending';
             }
 
-            $stmt = $db->prepare('INSERT INTO reservations (item_id, customer_name, contact_number, notes, status) VALUES (?, ?, ?, ?, ?)');
-            $stmt->execute([$itemId, $customerName, $contactNumber, $notes, $statusValue]);
+            // Calculate expiration date
+            $expirationDate = date('Y-m-d H:i:s', strtotime('+' . $durationDays . ' days'));
+
+            $stmt = $db->prepare('INSERT INTO reservations (item_id, customer_name, contact_number, notes, status, duration_days, expiration_date) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$itemId, $customerName, $contactNumber, $notes, $statusValue, $durationDays, $expirationDate]);
 
             $stmtUpdate = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
             $stmtUpdate->execute(['reserved', $itemId]);

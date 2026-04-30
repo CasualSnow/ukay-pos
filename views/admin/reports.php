@@ -5,8 +5,8 @@
 
     <main class="flex-1 ml-20 md:ml-64 bg-background min-h-screen p-8 transition-soft">
         <header class="mb-10">
-            <h1 class="text-2xl font-bold text-primary tracking-tight">Analytics & Reports</h1>
-            <p class="text-sm text-secondary font-medium">Detailed insights into your store operations</p>
+            <h1 class="text-2xl font-extrabold text-primary tracking-tight">Analytics & Reports</h1>
+           
         </header>
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">

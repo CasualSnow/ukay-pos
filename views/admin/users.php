@@ -7,7 +7,7 @@
         <header class="flex justify-between items-center mb-10">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900 dark:text-white">User Management</h1>
-                <p class="text-gray-500 dark:text-gray-400">Manage owner and staff accounts</p>
+                
             </div>
             <button @click="editMode = false; currentUser = {}; showModal = true" class="bg-black text-white dark:bg-white dark:text-black px-6 py-3 rounded-2xl font-bold flex items-center gap-2 hover:opacity-90 transition-all">
                 <i class="fa-solid fa-user-plus"></i>

@@ -21,6 +21,7 @@
                 ['path' => '/returns', 'icon' => 'fa-rotate-left', 'label' => 'Returns', 'role' => 'any'],
                 ['path' => '/inventory', 'icon' => 'fa-boxes-stacked', 'label' => 'Inventory', 'role' => 'admin'],
                 ['path' => '/reports', 'icon' => 'fa-chart-line', 'label' => 'Reports', 'role' => 'admin'],
+                ['path' => '/staff', 'icon' => 'fa-people-line', 'label' => 'Manage Staff', 'role' => 'admin'],
             ];
 
             foreach ($menu_items as $item): 
@@ -38,14 +39,42 @@
             <?php endforeach; ?>
         </nav>
 
-        <!-- Footer Actions -->
-        <div class="p-4 border-t border-border space-y-1">
-            <a href="<?php echo $base_url; ?>/logout" 
-               class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary hover:bg-red-50 hover:text-red-600 transition-soft group">
-                <div class="w-5 flex justify-center">
-                    <i class="fa-solid fa-right-from-bracket text-lg"></i>
-                </div>
-                <span class="hidden md:block text-sm">Logout</span>
+        <!-- Bottom Actions -->
+        <div class="p-4 border-t border-border space-y-2">
+            <button x-data="{
+                darkMode: localStorage.getItem('darkMode') === 'true' || '<?php echo $_SESSION['theme'] ?? 'light'; ?>' === 'dark',
+                init() {
+                    if (this.darkMode) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                },
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    localStorage.setItem('darkMode', this.darkMode);
+                    if (this.darkMode) {
+                        document.documentElement.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                    }
+                    window.dispatchEvent(new CustomEvent('darkModeChanged', { detail: this.darkMode }));
+                    this.saveToDB();
+                },
+                saveToDB() {
+                    fetch('<?php echo $base_url; ?>/user/update-theme', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                        body: 'theme=' + (this.darkMode ? 'dark' : 'light')
+                    });
+                }
+            }" x-init="init()" @click="toggleTheme()" class="w-full flex items-center space-x-3 p-3 rounded-xl text-secondary hover:bg-background hover:text-primary transition-soft">
+                <i :class="darkMode ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" class="w-6 text-center"></i>
+                <span class="hidden md:block font-medium" x-text="darkMode ? 'Light Mode' : 'Dark Mode'"></span>
+            </button>
+            <a href="<?php echo $base_url; ?>/logout" class="w-full flex items-center space-x-3 p-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                <i class="fa-solid fa-right-from-bracket w-6 text-center"></i>
+                <span class="hidden md:block font-medium">Logout</span>
             </a>
         </div>
     </div>
