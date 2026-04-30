@@ -1,4 +1,20 @@
-<?php require_once __DIR__ . '/../layouts/header.php'; ?>
+<?php
+/** @var array $stats */
+/** @var array $recentSales */
+/** @var array $categoryStats */
+/** @var string $base_url */
+require_once __DIR__ . '/../layouts/header.php';
+
+$stats = $stats ?? [
+    'today' => 0,
+    'available' => 0,
+    'reserved' => 0,
+    'items_sold' => 0,
+];
+$recentSales = $recentSales ?? [];
+$categoryStats = $categoryStats ?? [];
+$base_url = $base_url ?? '';
+?>
 
 <div x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }" class="flex min-h-screen" :class="{ 'dark': darkMode }">
     <?php require_once __DIR__ . '/../layouts/sidebar.php'; ?>

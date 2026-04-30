@@ -1,4 +1,11 @@
-<?php require_once __DIR__ . '/../layouts/header.php'; ?>
+<?php
+/** @var array $reservations */
+/** @var string $base_url */
+require_once __DIR__ . '/../layouts/header.php';
+
+$reservations = $reservations ?? [];
+$base_url = $base_url ?? '';
+?>
 
 <div x-data="{ 
     darkMode: localStorage.getItem('darkMode') === 'true',
@@ -38,7 +45,7 @@
                     
                     <div class="flex flex-col items-end gap-2">
                         <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider <?php 
-                            echo $res['status'] == 'pending' ? 'bg-yellow-50 text-yellow-600 border border-yellow-100' : ($res['status'] == 'paid' ? 'bg-blue-50 text-blue-600 border border-blue-100' : ($res['status'] == 'completed' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100')); 
+                            echo $res['status'] == 'reserved' || $res['status'] == 'pending' ? 'bg-yellow-50 text-yellow-600 border border-yellow-100' : ($res['status'] == 'paid' ? 'bg-blue-50 text-blue-600 border border-blue-100' : ($res['status'] == 'completed' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100')); 
                         ?>"><?php echo $res['status']; ?></span>
                         
                         <!-- Delete Reservation -->
@@ -80,7 +87,7 @@
                 </div>
 
                 <div class="space-y-2">
-                    <?php if ($res['status'] == 'pending'): ?>
+                    <?php if ($res['status'] == 'reserved' || $res['status'] == 'pending'): ?>
                     <button @click="selectedReservation = <?php echo htmlspecialchars(json_encode($res)); ?>; showPaymentModal = true; paymentMethod = 'cash'" 
                         class="w-full bg-accent text-white py-2.5 rounded-lg font-bold text-xs hover:bg-accent-hover transition-all shadow-sm">
                         Process Payment

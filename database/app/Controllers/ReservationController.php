@@ -25,60 +25,64 @@ class ReservationController extends Controller {
             // Support both JSON and FormData/POST
             $json = json_decode(file_get_contents('php://input'), true);
             $itemId = $json['item_id'] ?? $_POST['item_id'] ?? null;
-            $customerName = $json['customer_name'] ?? $_POST['customer_name'] ?? null;
-            $contactNumber = $json['contact_number'] ?? $_POST['contact_number'] ?? null;
-            $notes = $json['notes'] ?? $_POST['notes'] ?? null;
+            $customerName = trim($json['customer_name'] ?? $_POST['customer_name'] ?? '');
+            $contactNumber = trim($json['contact_number'] ?? $_POST['contact_number'] ?? '');
+            $notes = trim($json['notes'] ?? $_POST['notes'] ?? '');
 
-            // Validate inputs
-            if (empty($customerName)) {
-                throw new Exception("Customer name is required.");
-            }
             if (!$itemId) {
-                throw new Exception("Item ID is required.");
+                throw new Exception('Item ID is required.');
+            }
+            if (empty($customerName)) {
+                throw new Exception('Customer name is required.');
+            }
+            if (empty($contactNumber)) {
+                throw new Exception('Contact number is required.');
             }
 
             $db->beginTransaction();
-            
-            // Verify item exists and is still available
-            $stmtCheck = $db->prepare("SELECT status FROM items WHERE id = ? FOR UPDATE");
+
+            $stmtCheck = $db->prepare('SELECT status FROM items WHERE id = ? FOR UPDATE');
             $stmtCheck->execute([$itemId]);
             $item = $stmtCheck->fetch();
 
             if (!$item) {
-                throw new Exception("Item not found.");
+                throw new Exception('Item not found.');
             }
             if ($item['status'] !== 'available') {
-                throw new Exception("Item is already " . $item['status'] . ".");
+                throw new Exception('Item is already ' . $item['status'] . '.');
             }
 
-            // Securely insert the reservation
-            $stmt = $db->prepare("INSERT INTO reservations (item_id, customer_name, contact_number, notes, status) VALUES (?, ?, ?, ?, 'pending')");
-            $stmt->execute([$itemId, $customerName, $contactNumber, $notes]);
-            
-            // Update the item status
-            $stmtUpdate = $db->prepare("UPDATE items SET status = 'reserved' WHERE id = ?");
-            $stmtUpdate->execute([$itemId]);
-            
+            $stmtEnum = $db->query("SHOW COLUMNS FROM reservations LIKE 'status'")->fetch();
+            $statusValue = 'reserved';
+            if ($stmtEnum && strpos($stmtEnum['Type'], "'reserved'") === false) {
+                $statusValue = 'pending';
+            }
+
+            $stmt = $db->prepare('INSERT INTO reservations (item_id, customer_name, contact_number, notes, status) VALUES (?, ?, ?, ?, ?)');
+            $stmt->execute([$itemId, $customerName, $contactNumber, $notes, $statusValue]);
+
+            $stmtUpdate = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
+            $stmtUpdate->execute(['reserved', $itemId]);
+
             $db->commit();
 
-            // Handle AJAX or Redirect
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false || $json !== null;
-
             if ($isAjax) {
                 $this->json(['success' => true, 'message' => 'Item successfully reserved!']);
-            } else {
-                $this->redirect('/pos');
             }
+
+            $this->redirect('/pos');
         } catch (Exception $e) {
-            if ($db->inTransaction()) $db->rollBack();
-            
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false || isset($json);
-            
             if ($isAjax) {
                 $this->json(['success' => false, 'message' => $e->getMessage()]);
-            } else {
-                die("Reservation Error: " . $e->getMessage());
             }
+
+            die('Reservation Error: ' . $e->getMessage());
         }
     }
 
@@ -93,25 +97,25 @@ class ReservationController extends Controller {
         try {
             $db->beginTransaction();
 
-            // Get item_id and status before deleting
-            $stmt = $db->prepare("SELECT item_id, status FROM reservations WHERE id = ?");
+            $stmt = $db->prepare('SELECT item_id, status FROM reservations WHERE id = ?');
             $stmt->execute([$id]);
             $res = $stmt->fetch();
 
             if ($res) {
-                // If the reservation was not completed/cancelled, make the item available again
-                if ($res['status'] === 'pending' || $res['status'] === 'paid') {
-                    $stmtUpdate = $db->prepare("UPDATE items SET status = 'available' WHERE id = ?");
-                    $stmtUpdate->execute([$res['item_id']]);
+                if (in_array($res['status'], ['reserved', 'pending'], true)) {
+                    $stmtUpdate = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
+                    $stmtUpdate->execute(['available', $res['item_id']]);
                 }
 
-                $stmtDel = $db->prepare("DELETE FROM reservations WHERE id = ?");
+                $stmtDel = $db->prepare('DELETE FROM reservations WHERE id = ?');
                 $stmtDel->execute([$id]);
             }
 
             $db->commit();
         } catch (Exception $e) {
-            if ($db->inTransaction()) $db->rollBack();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
         }
 
         $this->redirect('/reservations');
@@ -120,95 +124,121 @@ class ReservationController extends Controller {
     public function complete() {
         $db = getDB();
         $id = $_POST['id'];
-        
-        // When completing a reservation, if it was already paid, we just mark it as completed.
-        // If it wasn't paid (though the UI should prevent this), we might need to handle it.
-        $stmt = $db->prepare("SELECT r.*, i.status as item_status FROM reservations r JOIN items i ON r.item_id = i.id WHERE r.id = ?");
-        $stmt->execute([$id]);
-        $res = $stmt->fetch();
-        
-        $db->beginTransaction();
-        $db->prepare("UPDATE reservations SET status = 'completed' WHERE id = ?")->execute([$id]);
-        
-        // Only set item back to available if it wasn't sold (paid)
-        if ($res && $res['item_status'] !== 'sold') {
-            $db->prepare("UPDATE items SET status = 'available' WHERE id = ?")->execute([$res['item_id']]);
+
+        try {
+            $db->beginTransaction();
+
+            $stmt = $db->prepare('SELECT r.*, i.status as item_status FROM reservations r JOIN items i ON r.item_id = i.id WHERE r.id = ?');
+            $stmt->execute([$id]);
+            $res = $stmt->fetch();
+
+            if (!$res || $res['status'] !== 'paid') {
+                throw new Exception('Only paid reservations can be finalized.');
+            }
+
+            $stmtComplete = $db->prepare('UPDATE reservations SET status = ? WHERE id = ?');
+            $stmtComplete->execute(['completed', $id]);
+
+            if ($res['item_status'] !== 'sold') {
+                $stmtItem = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
+                $stmtItem->execute(['available', $res['item_id']]);
+            }
+
+            $db->commit();
+        } catch (Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
         }
-        
-        $db->commit();
-        
+
         $this->redirect('/reservations');
     }
 
     public function pay() {
         $db = getDB();
-        $id = $_POST['reservation_id'];
-        $payment_method = $_POST['payment_method'];
+        $id = $_POST['reservation_id'] ?? null;
+        $payment_method = $_POST['payment_method'] ?? null;
         $user_id = $_SESSION['user_id'];
 
         try {
+            if (!$id) {
+                throw new Exception('Reservation ID is required.');
+            }
+            if (!in_array($payment_method, ['cash', 'gcash'], true)) {
+                throw new Exception('Invalid payment method.');
+            }
+
             $db->beginTransaction();
 
-            // Get reservation details
-            $stmt = $db->prepare("
-                SELECT r.*, i.price, i.tag_color, i.id as item_id 
+            $stmt = $db->prepare(
+                'SELECT r.*, i.price, i.tag_color, i.id as item_id 
                 FROM reservations r 
                 JOIN items i ON r.item_id = i.id 
-                WHERE r.id = ? AND r.status = 'pending'
-            ");
+                WHERE r.id = ? AND r.status IN (\'reserved\', \'pending\')'
+            );
             $stmt->execute([$id]);
             $res = $stmt->fetch();
 
             if (!$res) {
-                throw new Exception("Reservation not found or already processed.");
+                throw new Exception('Reservation not found or already processed.');
             }
 
-            // Calculate discount based on tag color
             $tag_key = 'discount_' . $res['tag_color'];
-            $stmtDisc = $db->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
+            $stmtDisc = $db->prepare('SELECT setting_value FROM settings WHERE setting_key = ?');
             $stmtDisc->execute([$tag_key]);
-            $discount_rate = (float)$stmtDisc->fetchColumn();
-            
+            $discount_rate = (float) $stmtDisc->fetchColumn();
+
             $discount_amount = $res['price'] * $discount_rate;
             $final_price = $res['price'] - $discount_amount;
 
-            // 1. Create Sale record
-            $stmtSale = $db->prepare("INSERT INTO sales (user_id, total_amount, payment_method) VALUES (?, ?, ?)");
-            $stmtSale->execute([$user_id, $final_price, $payment_method]);
+            $salesColumns = $db->query("SHOW COLUMNS FROM sales LIKE 'status'")->fetch();
+            if ($salesColumns) {
+                $stmtSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, status) VALUES (?, ?, ?, ?)');
+                $stmtSale->execute([$user_id, $final_price, $payment_method, 'paid']);
+            } else {
+                $stmtSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method) VALUES (?, ?, ?)');
+                $stmtSale->execute([$user_id, $final_price, $payment_method]);
+            }
             $sale_id = $db->lastInsertId();
 
-            // 2. Create Sale Item record
-            $stmtSaleItem = $db->prepare("INSERT INTO sale_items (sale_id, item_id, price, discount, final_price) VALUES (?, ?, ?, ?, ?)");
+            $stmtSaleItem = $db->prepare('INSERT INTO sale_items (sale_id, item_id, price, discount, final_price) VALUES (?, ?, ?, ?, ?)');
             $stmtSaleItem->execute([$sale_id, $res['item_id'], $res['price'], $discount_amount, $final_price]);
 
-            // 3. Update Item status to 'sold'
-            $stmtItem = $db->prepare("UPDATE items SET status = 'sold' WHERE id = ?");
-            $stmtItem->execute([$res['item_id']]);
+            $stmtItem = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
+            $stmtItem->execute(['sold', $res['item_id']]);
 
-            // 4. Update Reservation status to 'paid'
-            $stmtRes = $db->prepare("UPDATE reservations SET status = 'paid' WHERE id = ?");
-            $stmtRes->execute([$id]);
+            $stmtRes = $db->prepare('UPDATE reservations SET status = ? WHERE id = ?');
+            $stmtRes->execute(['paid', $id]);
 
             $db->commit();
-            $this->redirect('/reservations');
         } catch (Exception $e) {
-            $db->rollBack();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             die($e->getMessage());
         }
+
+        $this->redirect('/reservations');
     }
 
     public function cancel() {
         $db = getDB();
-        $id = $_POST['id'];
+        $id = $_POST['id'] ?? null;
 
-        $stmt = $db->prepare("SELECT item_id FROM reservations WHERE id = ?");
+        if (!$id) {
+            $this->redirect('/reservations');
+        }
+
+        $stmt = $db->prepare('SELECT item_id, status FROM reservations WHERE id = ?');
         $stmt->execute([$id]);
         $res = $stmt->fetch();
 
-        if ($res) {
+        if ($res && in_array($res['status'], ['reserved', 'pending'], true)) {
             $db->beginTransaction();
-            $db->prepare("UPDATE reservations SET status = 'cancelled' WHERE id = ?")->execute([$id]);
-            $db->prepare("UPDATE items SET status = 'available' WHERE id = ?")->execute([$res['item_id']]);
+            $stmtCancel = $db->prepare('UPDATE reservations SET status = ? WHERE id = ?');
+            $stmtCancel->execute(['cancelled', $id]);
+            $stmtItem = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
+            $stmtItem->execute(['available', $res['item_id']]);
             $db->commit();
         }
 

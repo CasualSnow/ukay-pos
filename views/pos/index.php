@@ -1,4 +1,11 @@
-<?php require_once __DIR__ . '/../layouts/header.php'; ?>
+<?php
+/** @var array $categories */
+/** @var string $base_url */
+require_once __DIR__ . '/../layouts/header.php';
+
+$categories = $categories ?? [];
+$base_url = $base_url ?? '';
+?>
 
 <div x-data="posApp()" x-init="init()" class="flex min-h-screen" :class="{ 'dark': darkMode }">
     <!-- Sidebar -->
@@ -171,7 +178,7 @@
             </div>
         </div>
     </main>
-</div>
+
     <!-- Payment Modal (Cash) -->
     <div x-show="paymentModal === 'cash'" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/40 backdrop-blur-sm">
         <div @click.away="paymentModal = null" class="bg-surface w-full max-w-md rounded-xl overflow-hidden shadow-xl scale-in border border-border">
@@ -255,8 +262,8 @@
                             class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Contact Number</label>
-                        <input type="text" x-model="contactNumber" placeholder="09XX XXX XXXX"
+                        <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Contact Number *</label>
+                        <input type="text" x-model="contactNumber" required placeholder="09XX XXX XXXX"
                             class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
                     </div>
                     <div>
@@ -321,6 +328,7 @@
             </div>
         </div>
     </div>
+</div>
 
 <script>
 function posApp() {
@@ -340,12 +348,19 @@ function posApp() {
         notes: '',
         cashReceived: 0,
         change: 0,
+        baseUrl: '<?php echo trim($base_url, '/'); ?>',
         lastSaleId: null,
         discounts: {
             red: 0.50,
             blue: 0.30,
             green: 0.20,
             yellow: 0.00
+        },
+        resolveUrl(path) {
+            if (!path.startsWith('/')) {
+                path = '/' + path;
+            }
+            return this.baseUrl ? '/' + this.baseUrl + path : path;
         },
 
         init() {
@@ -359,10 +374,15 @@ function posApp() {
                 category: this.category,
                 search: this.search
             });
-            fetch(`<?php echo $base_url; ?>/api/items?${params}`)
+            const endpoint = this.resolveUrl(`/api/items?${params}`);
+            fetch(endpoint)
                 .then(res => res.json())
                 .then(data => {
                     this.items = data;
+                    this.loading = false;
+                })
+                .catch(error => {
+                    console.error('Fetch items error:', error);
                     this.loading = false;
                 });
         },
@@ -427,6 +447,10 @@ function posApp() {
                 this.showToast('Please enter customer name', 'error');
                 return;
             }
+            if (!this.contactNumber) {
+                this.showToast('Please enter contact number', 'error');
+                return;
+            }
             console.log('Submitting reservation for:', this.customerName);
             this.loading = true;
             
@@ -436,7 +460,8 @@ function posApp() {
             formData.append('contact_number', this.contactNumber);
             formData.append('notes', this.notes);
 
-            fetch('<?php echo $base_url; ?>/reservations/add', {
+            const endpoint = this.resolveUrl('/reservations/add');
+            fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -482,7 +507,8 @@ function posApp() {
                 change: method === 'cash' ? this.change : null
             };
 
-            fetch('<?php echo $base_url; ?>/api/checkout', {
+            const endpoint = this.resolveUrl('/api/checkout');
+            fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -497,6 +523,10 @@ function posApp() {
                 } else {
                     this.showToast(data.message || 'Payment failed', 'error');
                 }
+            })
+            .catch(error => {
+                console.error('Payment error:', error);
+                this.showToast('Payment failed. Please try again.', 'error');
             });
         },
 

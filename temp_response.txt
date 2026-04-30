@@ -1,0 +1,147 @@
+* Host localhost:80 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed  Time    Time    Time   Current
+                                 Dload  Upload  Total   Spent   Left   Speed
+  0      0   0      0   0      0      0      0                              0*   Trying [::1]:80...
+* Established connection to localhost (::1 port 80) from ::1 port 60067 
+* using HTTP/1.x
+> GET /thrift_pos/pos HTTP/1.1
+> Host: localhost
+> User-Agent: curl/8.18.0
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 302 Found
+< Date: Thu, 30 Apr 2026 10:01:30 GMT
+< Server: Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12
+< X-Powered-By: PHP/8.2.12
+< Set-Cookie: PHPSESSID=3hniih3a7ttb344l46f9j89q1b; path=/
+< Expires: Thu, 19 Nov 1981 08:52:00 GMT
+< Cache-Control: no-store, no-cache, must-revalidate
+< Pragma: no-cache
+< Location: /thrift_pos/
+< Content-Length: 0
+< Content-Type: text/html; charset=UTF-8
+* Ignoring the response-body
+* setting size while ignoring
+< 
+  0      0   0      0   0      0      0      0                              0  0      0   0      0   0      0      0      0                              0
+* Connection #0 to host localhost:80 left intact
+* Issue another request to this URL: 'http://localhost/thrift_pos/'
+* Reusing existing http: connection with host localhost
+  0      0   0      0   0      0      0      0                              0> GET /thrift_pos/ HTTP/1.1
+> Host: localhost
+> User-Agent: curl/8.18.0
+> Accept: */*
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Date: Thu, 30 Apr 2026 10:01:30 GMT
+< Server: Apache/2.4.58 (Win64) OpenSSL/3.1.3 PHP/8.2.12
+< X-Powered-By: PHP/8.2.12
+< Set-Cookie: PHPSESSID=s3auav2u4a0ecpahpqqev27bqq; path=/
+< Expires: Thu, 19 Nov 1981 08:52:00 GMT
+< Cache-Control: no-store, no-cache, must-revalidate
+< Pragma: no-cache
+< Content-Length: 3889
+< Content-Type: text/html; charset=UTF-8
+< 
+{ [3889 bytes data]
+100   3889 100   3889   0      0  41522      0                              0100   3889 100   3889   0      0  41142      0                              0100   3889 100   3889   0      0  40768      0                              0
+* Connection #0 to host localhost:80 left intact
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThriftPOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#111827', // Charcoal/Dark Gray
+                        secondary: '#4B5563', // Gray-600
+                        background: '#F9FAFB', // Off-white
+                        accent: '#52796F', // Muted Green
+                        'accent-hover': '#354F52',
+                        border: '#E5E7EB',
+                        surface: '#FFFFFF'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F9FAFB; color: #111827; }
+        [x-cloak] { display: none !important; }
+
+        /* Custom Scrollbar Styles - Minimalist Aesthetic */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9CA3AF;
+        }
+
+        .card-shadow {
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+        
+        .transition-soft {
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-background dark:bg-gray-900 dark:text-gray-100 transition-colors duration-200">
+
+<div class="min-h-screen flex items-center justify-center px-4 bg-background">
+    <div class="max-w-md w-full bg-surface rounded-xl shadow-sm overflow-hidden p-10 border border-border">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-primary mb-2 tracking-tight">ThriftPOS</h1>
+            <p class="text-sm text-secondary font-medium">Sign in to your account</p>
+        </div>
+
+        
+        <form action="/thrift_pos/login" method="POST" class="space-y-6">
+            <div>
+                <label for="username" class="block text-xs font-bold text-secondary mb-2 uppercase tracking-widest">Username</label>
+                <input type="text" id="username" name="username" required
+                    class="w-full px-4 py-3 rounded-lg border border-border bg-background text-primary focus:ring-1 focus:ring-accent focus:border-accent outline-none transition-all text-sm font-medium">
+            </div>
+
+            <div>
+                <label for="password" class="block text-xs font-bold text-secondary mb-2 uppercase tracking-widest">Password</label>
+                <input type="password" id="password" name="password" required
+                    class="w-full px-4 py-3 rounded-lg border border-border bg-background text-primary focus:ring-1 focus:ring-accent focus:border-accent outline-none transition-all text-sm font-medium">
+            </div>
+
+            <button type="submit"
+                class="w-full bg-accent text-white py-3 rounded-lg font-bold text-sm hover:bg-accent-hover transition-all shadow-sm active:scale-[0.98]">
+                Login
+            </button>
+        </form>
+    </div>
+</div>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50"></div>
+    <script src="/thrift_pos/public/assets/js/main.js"></script>
+</body>
+</html>

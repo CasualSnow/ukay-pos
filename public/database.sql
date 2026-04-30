@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS sales (
     user_id INT,
     total_amount DECIMAL(10, 2) NOT NULL,
     payment_method ENUM('cash', 'gcash') NOT NULL,
+    status ENUM('paid', 'pending', 'cancelled') NOT NULL DEFAULT 'paid',
     cash_received DECIMAL(10, 2),
     `change` DECIMAL(10, 2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -46,7 +47,9 @@ CREATE TABLE IF NOT EXISTS reservations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     item_id INT,
     customer_name VARCHAR(100) NOT NULL,
-    status ENUM('pending', 'completed', 'cancelled') DEFAULT 'pending',
+    contact_number VARCHAR(20),
+    notes TEXT,
+    status ENUM('reserved', 'paid', 'completed', 'cancelled') NOT NULL DEFAULT 'reserved',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES items(id)
 );
