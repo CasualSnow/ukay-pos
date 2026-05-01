@@ -29,6 +29,10 @@ class Item extends Model {
 
     public function getCategories() {
         $stmt = $this->db->query("SELECT DISTINCT category FROM items");
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $dbCategories = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        
+        $defaultCategories = ['T-Shirts', 'Pants', 'Jackets', 'Shoes', 'Accessories', 'Others'];
+        
+        return array_unique(array_merge($defaultCategories, $dbCategories));
     }
 }

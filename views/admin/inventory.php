@@ -86,6 +86,7 @@
                             <label class="block text-xs font-bold text-secondary mb-2 uppercase tracking-widest">Category</label>
                             <select name="category" required
                                 class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg outline-none transition-all appearance-none text-sm font-medium">
+                                <option value="" disabled :selected="!currentItem.category">Select Category</option>
                                 <?php foreach ($categories as $cat): ?>
                                 <option value="<?php echo $cat; ?>" :selected="currentItem.category === '<?php echo $cat; ?>'"><?php echo $cat; ?></option>
                                 <?php endforeach; ?>

@@ -203,7 +203,7 @@ $base_url = $base_url ?? '';
                     <span class="text-green-700 text-xs font-bold uppercase">Change</span>
                     <span class="text-xl font-bold text-green-700">₱<span x-text="change"></span></span>
                 </div>
-                <button @click="processPayment('cash')" :disabled="cashReceived < cartTotal().total"
+                <button @click="processPayment('cash')" :disabled="parseFloat(cashReceived) < parseFloat(cartTotal().total)"
                     class="w-full bg-accent text-white py-4 rounded-lg font-bold text-sm hover:bg-accent-hover transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
                     Complete Transaction
                 </button>
@@ -436,7 +436,7 @@ function posApp() {
 
         openPaymentModal(type) {
             this.paymentModal = type;
-            this.cashReceived = 0;
+            this.cashReceived = '';
             this.change = 0;
         },
 
@@ -513,7 +513,7 @@ function posApp() {
 
         calculateChange() {
             const total = parseFloat(this.cartTotal().total);
-            const received = parseFloat(this.cashReceived);
+            const received = parseFloat(this.cashReceived) || 0;
             this.change = received >= total ? (received - total).toFixed(2) : 0;
         },
 
@@ -522,8 +522,8 @@ function posApp() {
                 items: this.cart,
                 total: this.cartTotal().total,
                 payment_method: method,
-                cash_received: method === 'cash' ? this.cashReceived : null,
-                change: method === 'cash' ? this.change : null
+                cash_received: method === 'cash' ? parseFloat(this.cashReceived) : null,
+                change: method === 'cash' ? parseFloat(this.change) : null
             };
 
             const endpoint = this.resolveUrl('/api/checkout');
@@ -540,7 +540,7 @@ function posApp() {
                     this.receiptModal = true;
                     this.showToast('Transaction completed!', 'success');
                 } else {
-                    this.showToast(data.message || 'Payment failed', 'error');
+                    this.showToast(data.message || 'Payment failed. Please check the items and try again.', 'error');
                 }
             })
             .catch(error => {

@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ThriftPOS</title>
+    <link rel="manifest" href="/thrift_pos/manifest.json">
+    <meta name="theme-color" content="#111827">
+    <link rel="apple-touch-icon" href="/thrift_pos/assets/icons/icon-512.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
@@ -70,6 +73,15 @@
                     }
                 }
             }
+        }
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/thrift_pos/sw.js')
+                    .then(reg => console.log('Service Worker registered with scope:', reg.scope))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
         }
     </script>
 </head>

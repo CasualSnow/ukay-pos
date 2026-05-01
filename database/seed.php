@@ -14,11 +14,11 @@ $pdo->exec("SET FOREIGN_KEY_CHECKS = 1;");
 
 // Seed Users
 $users = [
-    ['owner', password_hash('owner123', PASSWORD_DEFAULT), 'admin'],
-    ['staff', password_hash('staff123', PASSWORD_DEFAULT), 'staff'],
+    ['owner', 'Administrator', password_hash('owner123', PASSWORD_DEFAULT), 'admin', 'active', 'light'],
+    ['staff', 'Thrift Staff', password_hash('staff123', PASSWORD_DEFAULT), 'staff', 'active', 'light'],
 ];
 
-$stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+$stmt = $pdo->prepare("INSERT INTO users (username, fullname, password, role, status, theme) VALUES (?, ?, ?, ?, ?, ?)");
 foreach ($users as $user) {
     $stmt->execute($user);
 }

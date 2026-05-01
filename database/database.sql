@@ -4,8 +4,11 @@ USE thrift_pos;
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
+    fullname VARCHAR(100),
     password VARCHAR(255) NOT NULL,
     role ENUM('admin', 'staff') NOT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    theme ENUM('light', 'dark') DEFAULT 'light',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -49,7 +52,9 @@ CREATE TABLE IF NOT EXISTS reservations (
     customer_name VARCHAR(100) NOT NULL,
     contact_number VARCHAR(20),
     notes TEXT,
-    status ENUM('reserved', 'paid', 'completed', 'cancelled') NOT NULL DEFAULT 'reserved',
+    duration_days INT DEFAULT 1,
+    expiration_date DATETIME,
+    status ENUM('reserved', 'pending', 'paid', 'completed', 'cancelled', 'expired') NOT NULL DEFAULT 'reserved',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES items(id)
 );

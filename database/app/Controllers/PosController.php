@@ -79,8 +79,8 @@ class PosController extends Controller {
         if (!in_array($paymentMethod, ['cash', 'gcash'], true)) {
             $this->json(['success' => false, 'message' => 'Invalid payment method.']);
         }
-        if ($paymentMethod === 'cash' && ($cashReceived === null || $cashReceived < $total)) {
-            $this->json(['success' => false, 'message' => 'Cash received must cover the total amount.']);
+        if ($paymentMethod === 'cash' && ($cashReceived === null || round($cashReceived, 2) < round($total, 2))) {
+            $this->json(['success' => false, 'message' => 'Cash received must cover the total amount. Received: ' . $cashReceived . ' Total: ' . $total]);
         }
 
         $db = getDB();
@@ -97,6 +97,9 @@ class PosController extends Controller {
                 $stmtInsertSale->execute([$_SESSION['user_id'], $total, $paymentMethod, $cashReceived, $change]);
             }
             $saleId = $db->lastInsertId();
+
+            $stmtInsertItem = $db->prepare('INSERT INTO sale_items (sale_id, item_id, price, discount, final_price) VALUES (?, ?, ?, ?, ?)');
+            $stmtUpdateItem = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
 
             $calculatedTotal = 0;
             foreach ($items as $item) {
