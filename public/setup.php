@@ -84,8 +84,18 @@ try {
 
     // 2. Ensure specific columns exist (Fixing the 'created_at' bug)
     echo "Checking for missing columns...<br>";
-    $pdo->exec("ALTER TABLE sales ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
-    echo "✅ Column 'created_at' verified in 'sales' table.<br>";
+    
+    $tablesToFix = ['sales', 'users', 'items', 'reservations'];
+    foreach ($tablesToFix as $table) {
+        $checkColumn = $pdo->query("SHOW COLUMNS FROM `$table` LIKE 'created_at'")->fetch();
+        if (!$checkColumn) {
+            echo "Adding 'created_at' to $table...<br>";
+            $pdo->exec("ALTER TABLE `$table` ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+            echo "✅ Added 'created_at' to $table.<br>";
+        } else {
+            echo "ℹ️ 'created_at' already exists in $table.<br>";
+        }
+    }
 
     // 3. Ensure your user exists
     echo "Syncing users...<br>";
