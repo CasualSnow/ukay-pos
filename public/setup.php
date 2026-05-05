@@ -1,68 +1,48 @@
 <?php
 /**
- * Setup File - Hash existing plain text passwords for Railway deployment
- * This file will only run once and then disable itself.
+ * EMERGENCY DATABASE FIX - RUN THIS ON RAILWAY
  */
-
-// Check if already locked
-/*
-$lockFile = __DIR__ . '/setup.lock';
-if (file_exists($lockFile)) {
-    die("Setup has already been completed. This script is disabled for security.");
-}
-*/
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 require_once __DIR__ . '/../config/database.php';
 
+echo "<h2>Emergency Railway DB Fix</h2>";
+
 try {
     $pdo = getDB();
+    echo "✅ Connected to Database: " . getenv('MYSQLDATABASE') . "<br>";
     
-    // 1. Fetch all users
-    $stmt = $pdo->query("SELECT id, username, password FROM users");
-    $users = $stmt->fetchAll();
+    // 1. Ensure columns exist (just in case they were missed)
+    echo "Checking table structure...<br>";
+    $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS status ENUM('active', 'inactive') DEFAULT 'active'");
+    $pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS role ENUM('admin', 'staff') DEFAULT 'admin'");
     
-    $updatedCount = 0;
+    // 2. FORCE reset the owner account
+    echo "Resetting 'owner' account...<br>";
     
-    // 2. Hash passwords that aren't already hashed
-    $updateStmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+    // Delete if exists to avoid UNIQUE constraint issues while resetting
+    $pdo->exec("DELETE FROM users WHERE username = 'owner'");
     
-    foreach ($users as $user) {
-        $password = $user['password'];
-        $username = $user['username'];
-        $id = $user['id'];
-        
-        // Reset specific users to known passwords if requested
-        if ($username === 'owner' || $username === 'staff') {
-            $plainPass = ($username === 'owner') ? 'owner123' : 'staff123';
-            $hashedPassword = password_hash($plainPass, PASSWORD_DEFAULT);
-            
-            if ($updateStmt->execute([$hashedPassword, $id])) {
-                echo "SUCCESS: Forced reset for user <b>$username</b> (password: $plainPass)<br>";
-                echo "DEBUG: New Hash: $hashedPassword (Length: " . strlen($hashedPassword) . ")<br><br>";
-            } else {
-                echo "ERROR: Failed to update user $username<br><br>";
-            }
-            $updatedCount++;
-            continue;
-        }
-
-        // Simple check: password_hash produces strings that start with $2y$ (for BCRYPT)
-        // If it doesn't start with $2y$, it's likely plain text
-        if (substr($password, 0, 4) !== '$2y$') {
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $updateStmt->execute([$hashedPassword, $user['id']]);
-            $updatedCount++;
-            echo "Updated password for user: " . htmlspecialchars($user['username']) . "<br>";
-        }
+    $stmt = $pdo->prepare("INSERT INTO users (username, password, role, status) VALUES (?, ?, ?, ?)");
+    // We use PLAIN TEXT for this emergency fix so there is ZERO chance of hash mismatch
+    $stmt->execute(['owner', 'owner123', 'admin', 'active']);
+    
+    echo "✅ <b>User 'owner' has been reset!</b><br>";
+    echo "Login with:<br>";
+    echo "Username: <b>owner</b><br>";
+    echo "Password: <b>owner123</b><br><br>";
+    
+    // 3. Verify the data actually exists now
+    $check = $pdo->query("SELECT * FROM users WHERE username = 'owner'")->fetch();
+    if ($check) {
+        echo "Data Verification: User found in DB! Current DB Password: " . $check['password'] . "<br>";
+    } else {
+        echo "❌ ERROR: Data was not saved to DB!<br>";
     }
-    
-    // 3. Create lock file to prevent re-running
-    file_put_contents($lockFile, date('Y-m-d H:i:s'));
-    
-    echo "<h3>Success!</h3>";
-    echo "Total users updated: $updatedCount<br>";
-    echo "Setup is now complete and this script has been disabled.";
 
 } catch (Exception $e) {
-    die("Error during setup: " . $e->getMessage());
+    echo "❌ DATABASE ERROR: " . $e->getMessage() . "<br>";
+    echo "Host: " . getenv('MYSQLHOST') . "<br>";
 }
+?>
