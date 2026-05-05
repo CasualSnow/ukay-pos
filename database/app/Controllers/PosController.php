@@ -90,11 +90,11 @@ class PosController extends Controller {
             $stmtCheck = $db->prepare('SELECT status FROM items WHERE id = ? FOR UPDATE');
             $salesColumns = $db->query("SHOW COLUMNS FROM sales LIKE 'status'")->fetch();
             if ($salesColumns) {
-                $stmtInsertSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, status, cash_received, `change`) VALUES (?, ?, ?, ?, ?, ?)');
-                $stmtInsertSale->execute([$_SESSION['user_id'], $total, $paymentMethod, 'paid', $cashReceived, $change]);
+                $stmtInsertSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, status, cash_received, `change`, item_count) VALUES (?, ?, ?, ?, ?, ?, ?)');
+                $stmtInsertSale->execute([$_SESSION['user_id'], $total, $paymentMethod, 'paid', $cashReceived, $change, count($items)]);
             } else {
-                $stmtInsertSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, cash_received, `change`) VALUES (?, ?, ?, ?, ?)');
-                $stmtInsertSale->execute([$_SESSION['user_id'], $total, $paymentMethod, $cashReceived, $change]);
+                $stmtInsertSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, cash_received, `change`, item_count) VALUES (?, ?, ?, ?, ?, ?)');
+                $stmtInsertSale->execute([$_SESSION['user_id'], $total, $paymentMethod, $cashReceived, $change, count($items)]);
             }
             $saleId = $db->lastInsertId();
 
