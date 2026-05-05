@@ -1,7 +1,14 @@
 <?php
-// Increase session lifetime for Railway
+// Increase session lifetime and secure for Railway
 ini_set('session.gc_maxlifetime', 3600);
-session_set_cookie_params(3600);
+session_set_cookie_params([
+    'lifetime' => 3600,
+    'path' => '/',
+    'domain' => '',
+    'secure' => isset($_SERVER['HTTPS']),
+    'httponly' => true,
+    'samesite' => 'Lax'
+]);
 session_start();
 
 require_once __DIR__ . '/../database/app/Core/Router.php';

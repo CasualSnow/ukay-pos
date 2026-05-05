@@ -14,13 +14,18 @@ class AuthController extends Controller {
     }
 
     public function login() {
-        $username = $_POST['username'] ?? '';
-        $password = $_POST['password'] ?? '';
+        $username = trim($_POST['username'] ?? '');
+        $password = trim($_POST['password'] ?? '');
 
         $userModel = new User();
         $user = $userModel->findByUsername($username);
 
-        if ($user && password_verify($password, $user['password'])) {
+        if (!$user) {
+            $this->view('auth/login', ['error' => 'User not found: ' . htmlspecialchars($username)]);
+            return;
+        }
+
+        if (password_verify($password, $user['password'])) {
             if ($user['status'] !== 'active') {
                 $this->view('auth/login', ['error' => 'Account is disabled']);
                 return;
@@ -29,7 +34,7 @@ class AuthController extends Controller {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
-            $_SESSION['theme'] = $user['theme'];
+            $_SESSION['theme'] = $user['theme'] ?? 'light';
             
             if ($user['role'] === 'admin') {
                 $this->redirect('/dashboard');
@@ -37,7 +42,12 @@ class AuthController extends Controller {
                 $this->redirect('/pos');
             }
         } else {
-            $this->view('auth/login', ['error' => 'Invalid username or password']);
+            // Debugging password mismatch
+            $debugMsg = "Invalid password. ";
+            if (substr($user['password'], 0, 4) !== '$2y$') {
+                $debugMsg .= "Warning: DB password is NOT hashed.";
+            }
+            $this->view('auth/login', ['error' => $debugMsg]);
         }
     }
 

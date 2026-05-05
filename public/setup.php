@@ -29,21 +29,20 @@ try {
     foreach ($users as $user) {
         $password = $user['password'];
         $username = $user['username'];
+        $id = $user['id'];
         
         // Reset specific users to known passwords if requested
-        if ($username === 'owner') {
-            $hashedPassword = password_hash('owner123', PASSWORD_DEFAULT);
-            $updateStmt->execute([$hashedPassword, $user['id']]);
+        if ($username === 'owner' || $username === 'staff') {
+            $plainPass = ($username === 'owner') ? 'owner123' : 'staff123';
+            $hashedPassword = password_hash($plainPass, PASSWORD_DEFAULT);
+            
+            if ($updateStmt->execute([$hashedPassword, $id])) {
+                echo "SUCCESS: Forced reset for user <b>$username</b> (password: $plainPass)<br>";
+                echo "DEBUG: New Hash: $hashedPassword (Length: " . strlen($hashedPassword) . ")<br><br>";
+            } else {
+                echo "ERROR: Failed to update user $username<br><br>";
+            }
             $updatedCount++;
-            echo "FORCED reset for user: owner (password: owner123)<br>";
-            continue;
-        }
-        
-        if ($username === 'staff') {
-            $hashedPassword = password_hash('staff123', PASSWORD_DEFAULT);
-            $updateStmt->execute([$hashedPassword, $user['id']]);
-            $updatedCount++;
-            echo "FORCED reset for user: staff (password: staff123)<br>";
             continue;
         }
 
