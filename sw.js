@@ -1,7 +1,7 @@
 const CACHE_NAME = 'thriftpos-v1';
 const ASSETS_TO_CACHE = [
-  '/thrift_pos/',
-  '/thrift_pos/login',
+  '/',
+  '/login',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js',

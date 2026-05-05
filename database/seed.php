@@ -1,4 +1,4 @@
-<?php
+ <?php
 require_once __DIR__ . '/../config/database.php';
 
 $pdo = getDB();
@@ -25,10 +25,10 @@ foreach ($users as $user) {
 
 // Category Shared Images (LOCAL USER-PROVIDED IMAGES)
 $category_images = [
-    'T-Shirts' => '/thrift_pos/assets/images/images (2).jpg',
-    'Pants'    => '/thrift_pos/assets/images/download.jpg',
-    'Jackets'  => '/thrift_pos/assets/images/download (1).jpg',
-    'Shoes'    => '/thrift_pos/assets/images/download (2).jpg'
+    'T-Shirts' => '/assets/images/images (2).jpg',
+    'Pants'    => '/assets/images/download.jpg',
+    'Jackets'  => '/assets/images/download (1).jpg',
+    'Shoes'    => '/assets/images/download (2).jpg'
 ];
 
 // Seed Items with SHARED IMAGES per category but UNIQUE NAMES

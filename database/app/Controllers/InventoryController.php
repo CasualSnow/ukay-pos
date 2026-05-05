@@ -27,7 +27,7 @@ class InventoryController extends Controller {
             $target_file = $upload_dir . $file_name;
             
             if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
-                $image_url = '/thrift_pos/assets/images/' . $file_name;
+                $image_url = '/assets/images/' . $file_name;
             }
         }
 
@@ -65,7 +65,7 @@ class InventoryController extends Controller {
             $target_file = $upload_dir . $file_name;
             
             if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
-                $image_url = '/thrift_pos/assets/images/' . $file_name;
+                $image_url = '/assets/images/' . $file_name;
                 $image_sql = ", image_url = ?";
                 $params[] = $image_url;
             }
