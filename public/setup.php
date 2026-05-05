@@ -90,7 +90,8 @@ try {
             'created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 
             'user_id' => 'INT',
             'cash_received' => 'DECIMAL(10, 2)',
-            'change' => 'DECIMAL(10, 2)'
+            'change' => 'DECIMAL(10, 2)',
+            'item_count' => 'INT DEFAULT 1'
         ],
         'users' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'fullname' => 'VARCHAR(100)', 'status' => "ENUM('active', 'inactive') DEFAULT 'active'", 'theme' => "ENUM('light', 'dark') DEFAULT 'light'"],
         'items' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'],
