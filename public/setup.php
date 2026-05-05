@@ -89,7 +89,7 @@ try {
         'sales' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'user_id' => 'INT'],
         'users' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'fullname' => 'VARCHAR(100)', 'status' => "ENUM('active', 'inactive') DEFAULT 'active'", 'theme' => "ENUM('light', 'dark') DEFAULT 'light'"],
         'items' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'],
-        'reservations' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'duration_days' => 'INT DEFAULT 1', 'expiration_date' => 'DATETIME']
+        'reservations' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'duration_days' => 'INT DEFAULT 1', 'expiration_date' => 'DATETIME', 'item_id' => 'INT']
     ];
 
     foreach ($fixes as $table => $columns) {
