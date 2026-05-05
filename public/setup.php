@@ -82,18 +82,26 @@ try {
     }
     echo "✅ Tables created or verified.<br>";
 
-    // 2. Ensure specific columns exist (Fixing the 'created_at' bug)
+    // 2. Ensure specific columns exist
     echo "Checking for missing columns...<br>";
     
-    $tablesToFix = ['sales', 'users', 'items', 'reservations'];
-    foreach ($tablesToFix as $table) {
-        $checkColumn = $pdo->query("SHOW COLUMNS FROM `$table` LIKE 'created_at'")->fetch();
-        if (!$checkColumn) {
-            echo "Adding 'created_at' to $table...<br>";
-            $pdo->exec("ALTER TABLE `$table` ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
-            echo "✅ Added 'created_at' to $table.<br>";
-        } else {
-            echo "ℹ️ 'created_at' already exists in $table.<br>";
+    $fixes = [
+        'sales' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'user_id' => 'INT'],
+        'users' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'fullname' => 'VARCHAR(100)', 'status' => "ENUM('active', 'inactive') DEFAULT 'active'", 'theme' => "ENUM('light', 'dark') DEFAULT 'light'"],
+        'items' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'],
+        'reservations' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'duration_days' => 'INT DEFAULT 1', 'expiration_date' => 'DATETIME']
+    ];
+
+    foreach ($fixes as $table => $columns) {
+        foreach ($columns as $col => $definition) {
+            $check = $pdo->query("SHOW COLUMNS FROM `$table` LIKE '$col'")->fetch();
+            if (!$check) {
+                echo "Adding '$col' to $table...<br>";
+                $pdo->exec("ALTER TABLE `$table` ADD COLUMN `$col` $definition");
+                echo "✅ Added '$col' to $table.<br>";
+            } else {
+                echo "ℹ️ '$col' already exists in $table.<br>";
+            }
         }
     }
 
