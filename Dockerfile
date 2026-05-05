@@ -1,11 +1,11 @@
-FROM php:8.2-apache
+FROM php:8.2-cli
 
 RUN docker-php-ext-install pdo pdo_mysql mysqli
 
-COPY . /var/www/html/
+COPY . /app
 
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-
-RUN a2enmod rewrite
+WORKDIR /app
 
 EXPOSE 80
+
+CMD ["php", "-S", "0.0.0.0:80", "-t", "public"]
