@@ -129,12 +129,10 @@ class ReservationController extends Controller {
 
             $db->commit();
 
-            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false || $json !== null;
-            if ($isAjax) {
-                return $this->json(['success' => true, 'message' => 'Item successfully reserved!']);
-            }
-
-            $this->redirect('/pos');
+            // Clear any potential buffer and ensure clean response
+            if (ob_get_level()) ob_end_clean();
+            
+            return $this->json(['success' => true, 'message' => 'Item successfully reserved!']);
         } catch (Exception $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();

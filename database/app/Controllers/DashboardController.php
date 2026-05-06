@@ -18,19 +18,17 @@ class DashboardController extends Controller {
         // Accurate Inventory Unit Counts
         $inventoryCounts = $db->query("
             SELECT 
-                SUM(CASE WHEN status = 'available' THEN stock ELSE 0 END) as available,
-                SUM(CASE WHEN status = 'sold' THEN stock ELSE 0 END) as sold,
-                SUM(CASE WHEN status = 'reserved' THEN stock ELSE 0 END) as reserved,
-                SUM(stock) as total
-            FROM items
-            WHERE is_deleted = 0
+                (SELECT SUM(stock) FROM items WHERE status = 'available' AND is_deleted = 0) as available,
+                (SELECT SUM(stock) FROM items WHERE status = 'reserved' AND is_deleted = 0) as reserved,
+                (SELECT SUM(item_count) FROM sales WHERE status = 'paid') as sold,
+                (SELECT SUM(stock) FROM items WHERE is_deleted = 0) as total
         ")->fetch();
 
         // Ensure we handle NULL if table is empty
-        $inventoryCounts['available'] = $inventoryCounts['available'] ?? 0;
-        $inventoryCounts['sold'] = $inventoryCounts['sold'] ?? 0;
-        $inventoryCounts['reserved'] = $inventoryCounts['reserved'] ?? 0;
-        $inventoryCounts['total'] = $inventoryCounts['total'] ?? 0;
+        $inventoryCounts['available'] = (int)($inventoryCounts['available'] ?? 0);
+        $inventoryCounts['sold'] = (int)($inventoryCounts['sold'] ?? 0);
+        $inventoryCounts['reserved'] = (int)($inventoryCounts['reserved'] ?? 0);
+        $inventoryCounts['total'] = (int)($inventoryCounts['total'] ?? 0);
         
         // Recent Sales
         $recentSales = $db->query("SELECT s.*, u.username FROM sales s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC LIMIT 5")->fetchAll();
