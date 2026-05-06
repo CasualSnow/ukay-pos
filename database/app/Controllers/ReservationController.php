@@ -122,17 +122,27 @@ class ReservationController extends Controller {
             $expirationDate = date('Y-m-d H:i:s', strtotime('+' . $durationDays . ' days'));
 
             $stmt = $db->prepare('INSERT INTO reservations (item_id, customer_name, contact_number, notes, status, duration_days, expiration_date, location_indicator, proof_of_reservation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$itemId, $customerName, $contactNumber, $notes, $statusValue, $durationDays, $expirationDate, $locationIndicator, $proofOfReservation]);
+            $stmt->execute([
+                $itemId, 
+                $customerName, 
+                $contactNumber, 
+                $notes, 
+                $statusValue, 
+                (int)$durationDays, 
+                $expirationDate, 
+                $locationIndicator, 
+                $proofOfReservation
+            ]);
 
             $stmtUpdate = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
             $stmtUpdate->execute(['reserved', $itemId]);
 
             $db->commit();
 
-            // Clear any potential buffer and ensure clean response
-            if (ob_get_level()) ob_end_clean();
-            
-            return $this->json(['success' => true, 'message' => 'Item successfully reserved!']);
+            // Return clean JSON
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Item successfully reserved!']);
+            exit;
         } catch (Exception $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
