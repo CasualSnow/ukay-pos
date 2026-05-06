@@ -76,86 +76,56 @@ class ReservationController extends Controller {
             $contactNumber = trim($json['contact_number'] ?? $_POST['contact_number'] ?? '');
             $notes = trim($json['notes'] ?? $_POST['notes'] ?? '');
             $durationDays = isset($json['duration_days']) ? (int)$json['duration_days'] : (isset($_POST['duration_days']) ? (int)$_POST['duration_days'] : 1);
+            $quantity = isset($json['quantity']) ? (int)$json['quantity'] : (isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1);
             $locationIndicator = trim($json['location_indicator'] ?? $_POST['location_indicator'] ?? '');
             $proofOfReservation = $json['proof_of_reservation'] ?? $_POST['proof_of_reservation'] ?? null;
 
             $contactNumber = preg_replace('/\D+/', '', $contactNumber);
 
-            // Validate duration
-            if ($durationDays <= 0) {
-                throw new Exception('Reservation duration must be at least 1 day.');
-            }
-
-            if (!$itemId) {
-                throw new Exception('Item ID is required.');
-            }
-            if (empty($customerName)) {
-                throw new Exception('Customer name is required.');
-            }
-            if (empty($contactNumber)) {
-                throw new Exception('Contact number is required.');
-            }
-            if (!preg_match('/^\d{11}$/', $contactNumber)) {
-                throw new Exception('Contact number must contain exactly 11 digits.');
-            }
+            if (!$itemId) throw new Exception('Item ID is required.');
+            if (empty($customerName)) throw new Exception('Customer name is required.');
+            if (empty($contactNumber)) throw new Exception('Contact number is required.');
 
             $db->beginTransaction();
 
-            $stmtCheck = $db->prepare('SELECT status FROM items WHERE id = ? FOR UPDATE');
+            $stmtCheck = $db->prepare('SELECT status, stock FROM items WHERE id = ? FOR UPDATE');
             $stmtCheck->execute([$itemId]);
             $item = $stmtCheck->fetch();
 
-            if (!$item) {
-                throw new Exception('Item not found.');
-            }
-            if ($item['status'] !== 'available') {
-                throw new Exception('Item is already ' . $item['status'] . '.');
-            }
+            if (!$item) throw new Exception('Item not found.');
+            if ($item['stock'] < $quantity) throw new Exception('Not enough stock available.');
 
-            $stmtEnum = $db->query("SHOW COLUMNS FROM reservations LIKE 'status'")->fetch();
             $statusValue = 'reserved';
-            if ($stmtEnum && strpos($stmtEnum['Type'], "'reserved'") === false) {
-                $statusValue = 'pending';
-            }
-
-            // Calculate expiration date
             $expirationDate = date('Y-m-d H:i:s', strtotime('+' . $durationDays . ' days'));
 
-            // Check columns to use correct names (handling both item_id and proof_of_reservation)
             $stmt = $db->prepare('INSERT INTO reservations (item_id, product_id, customer_name, contact_number, notes, status, duration_days, expiration_date, location_indicator, proof_of_reservation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $itemId, 
-                $itemId, // Fill both for safety
+                $itemId, 
                 $customerName, 
                 $contactNumber, 
                 $notes, 
                 $statusValue, 
-                (int)$durationDays, 
+                $durationDays, 
                 $expirationDate, 
                 $locationIndicator, 
                 $proofOfReservation
             ]);
 
-            $stmtUpdate = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
-            $stmtUpdate->execute(['reserved', $itemId]);
+            // Reduce stock and update status if necessary
+            $stmtUpdate = $db->prepare('UPDATE items SET stock = stock - ?, status = CASE WHEN stock - ? <= 0 THEN "reserved" ELSE status END WHERE id = ?');
+            $stmtUpdate->execute([$quantity, $quantity, $itemId]);
 
             $db->commit();
 
-            // Return clean JSON
             header('Content-Type: application/json');
             echo json_encode(['success' => true, 'message' => 'Item successfully reserved!']);
             exit;
         } catch (Exception $e) {
-            if ($db->inTransaction()) {
-                $db->rollBack();
-            }
-
-            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false || isset($json);
-            if ($isAjax) {
-                return $this->json(['success' => false, 'message' => $e->getMessage()]);
-            }
-
-            die('Reservation Error: ' . $e->getMessage());
+            if ($db && $db->inTransaction()) $db->rollBack();
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
         }
     }
 

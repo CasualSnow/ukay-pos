@@ -320,6 +320,25 @@ $base_url = $base_url ?? '';
                 <div class="grid grid-cols-1 gap-4">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
+                            <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Quantity to Reserve *</label>
+                            <div class="flex items-center bg-background border border-border rounded-lg overflow-hidden h-10">
+                                <button type="button" @click="reservationQty = Math.max(1, reservationQty - 1)" class="px-3 hover:bg-surface transition-colors border-r border-border text-secondary">
+                                    <i class="fa-solid fa-minus text-[10px]"></i>
+                                </button>
+                                <input type="number" x-model.number="reservationQty" class="w-full text-center bg-transparent text-sm font-bold outline-none" min="1" :max="reservingItem ? reservingItem.stock : 1">
+                                <button type="button" @click="reservationQty = Math.min(reservingItem ? reservingItem.stock : 1, reservationQty + 1)" class="px-3 hover:bg-surface transition-colors border-l border-border text-secondary">
+                                    <i class="fa-solid fa-plus text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Duration (days) *</label>
+                            <input type="number" x-model="durationDays" min="1" step="1" required
+                                class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
                             <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Customer Name *</label>
                             <input type="text" x-model="customerName" required placeholder="Full Name"
                                 class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
@@ -331,17 +350,10 @@ $base_url = $base_url ?? '';
                                 class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Duration (days) *</label>
-                            <input type="number" x-model="durationDays" min="1" step="1" required
-                                class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Location in Shop</label>
-                            <input type="text" x-model="locationIndicator" placeholder="e.g. Rack A, Shelf 2"
-                                class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
-                        </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Location in Shop</label>
+                        <input type="text" x-model="locationIndicator" placeholder="e.g. Rack A, Shelf 2"
+                            class="w-full px-4 py-2.5 bg-background border border-border focus:ring-1 focus:ring-accent focus:border-accent rounded-lg text-sm font-medium outline-none transition-all">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold text-secondary mb-1.5 uppercase tracking-widest">Notes</label>
@@ -390,6 +402,7 @@ function posApp() {
         capturedImage: null,
         stream: null,
         locationIndicator: '',
+        reservationQty: 1,
         reservationModal: false,
         reservingItem: null,
         customerName: '',
@@ -480,6 +493,7 @@ function posApp() {
             this.contactNumber = '';
             this.notes = '';
             this.durationDays = 1;
+            this.reservationQty = 1;
             this.locationIndicator = '';
             this.proofOfReservation = null;
             this.reservationModal = true;
@@ -580,6 +594,7 @@ function posApp() {
                 contact_number: this.contactNumber,
                 notes: this.notes,
                 duration_days: this.durationDays,
+                quantity: this.reservationQty,
                 location_indicator: this.locationIndicator,
                 proof_of_reservation: this.proofOfReservation
             };
@@ -589,7 +604,10 @@ function posApp() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Server returned ' + res.status);
+                return res.json();
+            })
             .then(data => {
                 this.loading = false;
                 if (data.success) {
@@ -601,8 +619,9 @@ function posApp() {
                 }
             })
             .catch(error => {
+                console.error('Reservation error:', error);
                 this.loading = false;
-                this.showToast('Network error', 'error');
+                this.showToast('Error: ' + error.message, 'error');
             });
         },
 
