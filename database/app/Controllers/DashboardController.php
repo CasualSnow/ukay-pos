@@ -31,6 +31,13 @@ class DashboardController extends Controller {
         // Sales by Category
         $salesByCategory = $db->query("SELECT i.category, COUNT(si.id) as count FROM sale_items si JOIN items i ON si.item_id = i.id GROUP BY i.category")->fetchAll();
 
+        // Daily Earnings for Calendar
+        $dailyEarnings = $db->query("
+            SELECT DATE(created_at) as date, SUM(COALESCE(bargained_price, total_amount)) as total 
+            FROM sales 
+            GROUP BY DATE(created_at)
+        ")->fetchAll();
+
         $this->view('admin/dashboard', [
             'stats' => [
                 'today' => $salesToday['total'] ?? 0,
@@ -41,7 +48,8 @@ class DashboardController extends Controller {
                 'total_items' => $inventoryCounts['total'] ?? 0
             ],
             'recentSales' => $recentSales,
-            'categoryStats' => $salesByCategory
+            'categoryStats' => $salesByCategory,
+            'dailyEarnings' => $dailyEarnings
         ]);
     }
 }

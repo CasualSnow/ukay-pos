@@ -16,7 +16,10 @@ CREATE TABLE IF NOT EXISTS items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     category VARCHAR(50) NOT NULL,
+    gender ENUM('Men', 'Women', 'Unisex', 'Kids') NOT NULL DEFAULT 'Unisex',
+    size VARCHAR(20),
     price DECIMAL(10, 2) NOT NULL,
+    stock INT NOT NULL DEFAULT 1,
     tag_color ENUM('red', 'blue', 'green', 'yellow') NOT NULL,
     image_url VARCHAR(255),
     status ENUM('available', 'sold', 'reserved') DEFAULT 'available',
@@ -27,10 +30,13 @@ CREATE TABLE IF NOT EXISTS sales (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT,
     total_amount DECIMAL(10, 2) NOT NULL,
+    bargained_price DECIMAL(10, 2),
     payment_method ENUM('cash', 'gcash') NOT NULL,
     status ENUM('paid', 'pending', 'cancelled') NOT NULL DEFAULT 'paid',
     cash_received DECIMAL(10, 2),
     `change` DECIMAL(10, 2),
+    proof_of_purchase VARCHAR(255),
+    item_count INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
@@ -54,6 +60,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     notes TEXT,
     duration_days INT DEFAULT 1,
     expiration_date DATETIME,
+    proof_of_reservation VARCHAR(255),
+    location_indicator VARCHAR(100),
     status ENUM('reserved', 'pending', 'paid', 'completed', 'cancelled', 'expired') NOT NULL DEFAULT 'reserved',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (item_id) REFERENCES items(id)

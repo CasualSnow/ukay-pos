@@ -69,9 +69,12 @@ class PosController extends Controller {
 
         $items = $data['items'];
         $total = (float) $data['total'];
+        $bargainedPrice = isset($data['bargained_price']) && $data['bargained_price'] !== '' ? (float) $data['bargained_price'] : null;
+        $finalTotal = $bargainedPrice !== null ? $bargainedPrice : $total;
         $paymentMethod = $data['payment_method'];
         $cashReceived = isset($data['cash_received']) ? (float) $data['cash_received'] : null;
         $change = isset($data['change']) ? (float) $data['change'] : null;
+        $proofOfPurchase = $data['proof_of_purchase'] ?? null;
 
         if (!is_array($items) || count($items) === 0) {
             $this->json(['success' => false, 'message' => 'Cart cannot be empty.']);
@@ -79,60 +82,57 @@ class PosController extends Controller {
         if (!in_array($paymentMethod, ['cash', 'gcash'], true)) {
             $this->json(['success' => false, 'message' => 'Invalid payment method.']);
         }
-        if ($paymentMethod === 'cash' && ($cashReceived === null || round($cashReceived, 2) < round($total, 2))) {
-            $this->json(['success' => false, 'message' => 'Cash received must cover the total amount. Received: ' . $cashReceived . ' Total: ' . $total]);
+        if ($paymentMethod === 'cash' && ($cashReceived === null || round($cashReceived, 2) < round($finalTotal, 2))) {
+            $this->json(['success' => false, 'message' => 'Cash received must cover the total amount.']);
         }
 
         $db = getDB();
         try {
             $db->beginTransaction();
 
-            $stmtCheck = $db->prepare('SELECT status FROM items WHERE id = ? FOR UPDATE');
-            $salesColumns = $db->query("SHOW COLUMNS FROM sales LIKE 'status'")->fetch();
-            if ($salesColumns) {
-                $stmtInsertSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, status, cash_received, `change`, item_count) VALUES (?, ?, ?, ?, ?, ?, ?)');
-                $stmtInsertSale->execute([$_SESSION['user_id'], $total, $paymentMethod, 'paid', $cashReceived, $change, count($items)]);
-            } else {
-                $stmtInsertSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, cash_received, `change`, item_count) VALUES (?, ?, ?, ?, ?, ?)');
-                $stmtInsertSale->execute([$_SESSION['user_id'], $total, $paymentMethod, $cashReceived, $change, count($items)]);
+            $stmtCheck = $db->prepare('SELECT status, stock FROM items WHERE id = ? FOR UPDATE');
+            $stmtInsertSale = $db->prepare('INSERT INTO sales (user_id, total_amount, bargained_price, payment_method, status, cash_received, `change`, proof_of_purchase, item_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            
+            $itemCount = 0;
+            foreach ($items as $item) {
+                $itemCount += $item['quantity'];
             }
+
+            $stmtInsertSale->execute([
+                $_SESSION['user_id'], 
+                $total, 
+                $bargainedPrice,
+                $paymentMethod, 
+                'paid', 
+                $cashReceived, 
+                $change, 
+                $proofOfPurchase,
+                $itemCount
+            ]);
             $saleId = $db->lastInsertId();
 
             $stmtInsertItem = $db->prepare('INSERT INTO sale_items (sale_id, item_id, price, discount, final_price) VALUES (?, ?, ?, ?, ?)');
-            $stmtUpdateItem = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
+            $stmtUpdateItem = $db->prepare('UPDATE items SET stock = stock - ?, status = CASE WHEN stock <= 0 THEN "sold" ELSE status END WHERE id = ?');
 
-            $calculatedTotal = 0;
             foreach ($items as $item) {
-                if (empty($item['id'])) {
-                    throw new Exception('Invalid item entry in cart.');
-                }
-
                 $stmtCheck->execute([$item['id']]);
                 $storedItem = $stmtCheck->fetch();
-                if (!$storedItem) {
-                    throw new Exception('Item with ID ' . $item['id'] . ' not found.');
-                }
-                if ($storedItem['status'] !== 'available') {
-                    throw new Exception('Item with ID ' . $item['id'] . ' is not available for sale.');
+                
+                if (!$storedItem || $storedItem['status'] !== 'available' || $storedItem['stock'] < $item['quantity']) {
+                    throw new Exception('Item ' . $item['name'] . ' is no longer available in the requested quantity.');
                 }
 
-                $price = isset($item['price']) ? (float) $item['price'] : 0;
-                $discount = isset($item['discount']) ? (float) $item['discount'] : 0;
-                $finalPrice = isset($item['final_price']) ? (float) $item['final_price'] : $price - $discount;
-
-                $expectedFinalPrice = $price - $discount;
-                if (abs($finalPrice - $expectedFinalPrice) > 0.01) {
-                    $finalPrice = $expectedFinalPrice;
+                $price = (float) $item['price'];
+                $quantity = (int) $item['quantity'];
+                
+                // For sale_items, we'll store per unit price. 
+                // Since bargained_price is for the whole sale, we don't necessarily need to distribute it to items unless required.
+                // But let's store the original price as final_price since discounts are removed.
+                for ($i = 0; $i < $quantity; $i++) {
+                    $stmtInsertItem->execute([$saleId, $item['id'], $price, 0, $price]);
                 }
-
-                $calculatedTotal += $finalPrice;
-
-                $stmtInsertItem->execute([$saleId, $item['id'], $price, $discount, $finalPrice]);
-                $stmtUpdateItem->execute(['sold', $item['id']]);
-            }
-
-            if (abs($calculatedTotal - $total) > 0.01) {
-                throw new Exception('Total amount mismatch.');
+                
+                $stmtUpdateItem->execute([$quantity, $item['id']]);
             }
 
             $db->commit();
@@ -142,6 +142,30 @@ class PosController extends Controller {
                 $db->rollBack();
             }
             $this->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    public function uploadCapture() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!isset($data['image'])) {
+            $this->json(['success' => false, 'message' => 'No image data']);
+        }
+
+        $img = $data['image'];
+        $img = str_replace('data:image/png;base64,', '', $img);
+        $img = str_replace(' ', '+', $img);
+        $fileData = base64_decode($img);
+        
+        $uploadDir = __DIR__ . '/../../../public/uploads/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        
+        $fileName = 'capture_' . uniqid() . '.png';
+        $filePath = $uploadDir . $fileName;
+        
+        if (file_put_contents($filePath, $fileData)) {
+            $this->json(['success' => true, 'file_url' => '/uploads/' . $fileName]);
+        } else {
+            $this->json(['success' => false, 'message' => 'Failed to save image']);
         }
     }
 }

@@ -18,10 +18,9 @@
                 ['path' => '/dashboard', 'icon' => 'fa-chart-pie', 'label' => 'Dashboard', 'role' => 'admin'],
                 ['path' => '/pos', 'icon' => 'fa-cash-register', 'label' => 'POS', 'role' => 'any'],
                 ['path' => '/reservations', 'icon' => 'fa-calendar-check', 'label' => 'Reservations', 'role' => 'any'],
-                ['path' => '/returns', 'icon' => 'fa-rotate-left', 'label' => 'Returns', 'role' => 'any'],
                 ['path' => '/inventory', 'icon' => 'fa-boxes-stacked', 'label' => 'Inventory', 'role' => 'admin'],
                 ['path' => '/reports', 'icon' => 'fa-chart-line', 'label' => 'Reports', 'role' => 'admin'],
-                ['path' => '/staff', 'icon' => 'fa-people-line', 'label' => 'Manage Staff', 'role' => 'admin'],
+                ['path' => '/history', 'icon' => 'fa-clock-rotate-left', 'label' => 'Sales History', 'role' => 'any'],
             ];
 
             foreach ($menu_items as $item): 

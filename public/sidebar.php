@@ -28,11 +28,6 @@
                 <i class="fa-solid fa-calendar-check w-6 text-center"></i>
                 <span class="hidden md:block font-medium">Reservations</span>
             </a>
-
-            <a href="<?php echo $base_url; ?>/returns" class="flex items-center space-x-3 p-3 rounded-xl transition-all <?php echo strpos($_SERVER['REQUEST_URI'], '/returns') !== false ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'; ?>">
-                <i class="fa-solid fa-rotate-left w-6 text-center"></i>
-                <span class="hidden md:block font-medium">Returns</span>
-            </a>
             
             <?php if ($_SESSION['role'] == 'admin'): ?>
             <a href="<?php echo $base_url; ?>/inventory" class="flex items-center space-x-3 p-3 rounded-xl transition-all <?php echo strpos($_SERVER['REQUEST_URI'], '/inventory') !== false ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'; ?>">
@@ -42,6 +37,10 @@
             <a href="<?php echo $base_url; ?>/reports" class="flex items-center space-x-3 p-3 rounded-xl transition-all <?php echo strpos($_SERVER['REQUEST_URI'], '/reports') !== false ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'; ?>">
                 <i class="fa-solid fa-file-invoice w-6 text-center"></i>
                 <span class="hidden md:block font-medium">Reports</span>
+            </a>
+            <a href="<?php echo $base_url; ?>/history" class="flex items-center space-x-3 p-3 rounded-xl transition-all <?php echo strpos($_SERVER['REQUEST_URI'], '/history') !== false ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'; ?>">
+                <i class="fa-solid fa-clock-rotate-left w-6 text-center"></i>
+                <span class="hidden md:block font-medium">History</span>
             </a>
             <?php endif; ?>
         </nav>

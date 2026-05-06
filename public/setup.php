@@ -85,18 +85,30 @@ try {
     // 2. Ensure specific columns exist
     echo "Checking for missing columns...<br>";
     
-    $fixes = [
         'sales' => [
             'created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 
             'user_id' => 'INT',
             'cash_received' => 'DECIMAL(10, 2)',
             'change' => 'DECIMAL(10, 2)',
-            'item_count' => 'INT DEFAULT 1'
+            'item_count' => 'INT DEFAULT 1',
+            'bargained_price' => 'DECIMAL(10, 2)',
+            'proof_of_purchase' => 'VARCHAR(255)'
         ],
         'users' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'fullname' => 'VARCHAR(100)', 'status' => "ENUM('active', 'inactive') DEFAULT 'active'", 'theme' => "ENUM('light', 'dark') DEFAULT 'light'"],
-        'items' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'],
-        'reservations' => ['created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 'duration_days' => 'INT DEFAULT 1', 'expiration_date' => 'DATETIME', 'item_id' => 'INT']
-    ];
+        'items' => [
+            'created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+            'gender' => "ENUM('Men', 'Women', 'Unisex', 'Kids') NOT NULL DEFAULT 'Unisex'",
+            'size' => 'VARCHAR(20)',
+            'stock' => 'INT NOT NULL DEFAULT 1'
+        ],
+        'reservations' => [
+            'created_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP', 
+            'duration_days' => 'INT DEFAULT 1', 
+            'expiration_date' => 'DATETIME', 
+            'item_id' => 'INT',
+            'proof_of_reservation' => 'VARCHAR(255)',
+            'location_indicator' => 'VARCHAR(100)'
+        ]
 
     foreach ($fixes as $table => $columns) {
         foreach ($columns as $col => $definition) {

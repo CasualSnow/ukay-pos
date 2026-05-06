@@ -76,6 +76,8 @@ class ReservationController extends Controller {
             $contactNumber = trim($json['contact_number'] ?? $_POST['contact_number'] ?? '');
             $notes = trim($json['notes'] ?? $_POST['notes'] ?? '');
             $durationDays = isset($json['duration_days']) ? (int)$json['duration_days'] : (isset($_POST['duration_days']) ? (int)$_POST['duration_days'] : 1);
+            $locationIndicator = trim($json['location_indicator'] ?? $_POST['location_indicator'] ?? '');
+            $proofOfReservation = $json['proof_of_reservation'] ?? $_POST['proof_of_reservation'] ?? null;
 
             $contactNumber = preg_replace('/\D+/', '', $contactNumber);
 
@@ -119,8 +121,8 @@ class ReservationController extends Controller {
             // Calculate expiration date
             $expirationDate = date('Y-m-d H:i:s', strtotime('+' . $durationDays . ' days'));
 
-            $stmt = $db->prepare('INSERT INTO reservations (item_id, customer_name, contact_number, notes, status, duration_days, expiration_date) VALUES (?, ?, ?, ?, ?, ?, ?)');
-            $stmt->execute([$itemId, $customerName, $contactNumber, $notes, $statusValue, $durationDays, $expirationDate]);
+            $stmt = $db->prepare('INSERT INTO reservations (item_id, customer_name, contact_number, notes, status, duration_days, expiration_date, location_indicator, proof_of_reservation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$itemId, $customerName, $contactNumber, $notes, $statusValue, $durationDays, $expirationDate, $locationIndicator, $proofOfReservation]);
 
             $stmtUpdate = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
             $stmtUpdate->execute(['reserved', $itemId]);
@@ -129,7 +131,7 @@ class ReservationController extends Controller {
 
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false || $json !== null;
             if ($isAjax) {
-                $this->json(['success' => true, 'message' => 'Item successfully reserved!']);
+                return $this->json(['success' => true, 'message' => 'Item successfully reserved!']);
             }
 
             $this->redirect('/pos');
@@ -140,7 +142,7 @@ class ReservationController extends Controller {
 
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false || isset($json);
             if ($isAjax) {
-                $this->json(['success' => false, 'message' => $e->getMessage()]);
+                return $this->json(['success' => false, 'message' => $e->getMessage()]);
             }
 
             die('Reservation Error: ' . $e->getMessage());

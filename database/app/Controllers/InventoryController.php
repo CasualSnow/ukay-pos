@@ -16,64 +16,56 @@ class InventoryController extends Controller {
     }
 
     public function add() {
-        $image_url = 'https://picsum.photos/400/400?random=' . rand(1, 1000);
-        
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = __DIR__ . '/../../../public/assets/images/';
-            if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-            
-            $file_extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $file_name = uniqid() . '.' . $file_extension;
-            $target_file = $upload_dir . $file_name;
-            
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
-                $image_url = '/assets/images/' . $file_name;
-            }
-        }
-
         $db = getDB();
-        $stmt = $db->prepare("INSERT INTO items (name, category, price, tag_color, image_url, status) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $db->prepare("INSERT INTO items (name, category, gender, size, price, stock, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $_POST['name'],
             $_POST['category'],
+            $_POST['gender'] ?? 'Unisex',
+            $_POST['size'] ?? '',
             $_POST['price'],
-            $_POST['tag_color'],
-            $image_url,
+            $_POST['stock'] ?? 1,
             'available'
         ]);
         $this->redirect('/inventory');
     }
 
+    public function bulkAdd() {
+        $db = getDB();
+        $items = $_POST['items']; // Expected to be an array of item objects
+        
+        $stmt = $db->prepare("INSERT INTO items (name, category, gender, size, price, stock, status) VALUES (?, ?, ?, ?, ?, ?, ?)");
+        
+        foreach ($items as $item) {
+            if (empty($item['name'])) continue;
+            $stmt->execute([
+                $item['name'],
+                $item['category'],
+                $item['gender'] ?? 'Unisex',
+                $item['size'] ?? '',
+                $item['price'],
+                $item['stock'] ?? 1,
+                'available'
+            ]);
+        }
+        
+        echo json_encode(['success' => true]);
+    }
+
     public function update() {
         $db = getDB();
         
-        $image_sql = "";
-        $params = [
+        $stmt = $db->prepare("UPDATE items SET name = ?, category = ?, gender = ?, size = ?, price = ?, stock = ?, status = ? WHERE id = ?");
+        $stmt->execute([
             $_POST['name'],
             $_POST['category'],
+            $_POST['gender'],
+            $_POST['size'],
             $_POST['price'],
-            $_POST['tag_color'],
-            $_POST['status']
-        ];
-
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $upload_dir = __DIR__ . '/../../../public/assets/images/';
-            if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
-            
-            $file_extension = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $file_name = uniqid() . '.' . $file_extension;
-            $target_file = $upload_dir . $file_name;
-            
-            if (move_uploaded_file($_FILES['image']['tmp_name'], $target_file)) {
-                $image_url = '/assets/images/' . $file_name;
-                $image_sql = ", image_url = ?";
-                $params[] = $image_url;
-            }
-        }
-
-        $params[] = $_POST['id'];
-        $stmt = $db->prepare("UPDATE items SET name = ?, category = ?, price = ?, tag_color = ?, status = ? $image_sql WHERE id = ?");
-        $stmt->execute($params);
+            $_POST['stock'],
+            $_POST['status'],
+            $_POST['id']
+        ]);
         $this->redirect('/inventory');
     }
 

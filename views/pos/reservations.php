@@ -7,175 +7,144 @@ $reservations = $reservations ?? [];
 $base_url = $base_url ?? '';
 ?>
 
-<div x-data="reservationsApp()" x-init="init()" class="flex min-h-screen">
+<div x-data="reservationsApp()" x-init="init()" class="flex min-h-screen bg-background" :class="{ 'dark': darkMode }">
     <?php require_once __DIR__ . '/../layouts/sidebar.php'; ?>
 
-    <main class="flex-1 ml-20 md:ml-64 bg-background min-h-screen p-8">
-        <header class="mb-10">
-            <h1 class="text-2xl font-extrabold text-primary tracking-tight">Customer Reservations</h1>
-           
+    <main class="flex-1 ml-20 md:ml-64 bg-background min-h-screen p-4 md:p-8 transition-all duration-300">
+        <header class="mb-8">
+            <h1 class="text-2xl font-extrabold text-primary tracking-tight">Active Reservations</h1>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <?php foreach ($reservations as $res): 
-                $remainingDays = null;
-                $hasExpirationDate = isset($res['expiration_date']) && !empty($res['expiration_date']);
-                if (isset($res['duration_days']) && $res['duration_days'] !== null && $res['duration_days'] !== '') {
-                    $durationDays = (int) $res['duration_days'];
-                } elseif ($hasExpirationDate && isset($res['created_at']) && !empty($res['created_at'])) {
-                    $created = new DateTime($res['created_at']);
-                    $expiration = new DateTime($res['expiration_date']);
-                    $durationDays = $created->diff($expiration)->days;
-                } else {
-                    $durationDays = null;
-                }
-                if ($hasExpirationDate && in_array($res['status'], ['reserved', 'pending'])) {
-                    $expiration = new DateTime($res['expiration_date']);
-                    $now = new DateTime();
-                    $interval = $now->diff($expiration);
-                    $remainingDays = $interval->invert ? -1 : $interval->days;
-                }
-            ?>
-            <div class="bg-surface rounded-xl p-6 shadow-sm border border-border transition-all hover:border-accent/30 relative group/card">
-                <div class="flex items-start justify-between mb-6">
-                    <div class="flex items-center gap-4">
-                        <img src="<?php echo $res['image_url']; ?>" class="w-14 h-14 rounded-lg object-cover border border-border">
-                        <div>
-                            <h3 class="font-bold text-primary text-sm"><?php echo $res['item_name']; ?></h3>
-                            <p class="text-xs text-accent font-bold">₱<?php echo number_format($res['price'], 2); ?></p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex flex-col items-end gap-2">
-                        <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider <?php 
-                            echo $res['status'] == 'reserved' || $res['status'] == 'pending' ? 'bg-yellow-50 text-yellow-600 border border-yellow-100' : 
-                                ($res['status'] == 'paid' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 
-                                ($res['status'] == 'completed' ? 'bg-green-50 text-green-600 border border-green-100' : 
-                                ($res['status'] == 'expired' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-red-50 text-red-600 border border-red-100'))); 
-                        ?>"><?php echo $res['status']; ?></span>
-                        
-                        <!-- Delete Reservation -->
-                        <?php if (in_array($res['status'], ['reserved', 'pending'])): ?>
-                        <form action="<?php echo $base_url; ?>/reservations/delete" method="POST" class="opacity-0 group-hover/card:opacity-100 transition-opacity z-10" onsubmit="return confirm('Are you sure you want to delete this reservation?')">
-                            <input type="hidden" name="id" value="<?php echo $res['id']; ?>">
-                            <button type="submit" class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm">
-                                <i class="fa-solid fa-trash-can text-xs"></i>
-                            </button>
-                        </form>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                
-                <div class="bg-background rounded-lg p-4 mb-6 border border-border space-y-3">
-                    <div>
-                        <div class="flex items-center gap-2 text-secondary/40 mb-1">
-                            <i class="fa-solid fa-user text-[10px]"></i>
-                            <span class="text-[9px] font-bold uppercase tracking-widest">Customer</span>
-                        </div>
-                        <p class="font-bold text-primary text-sm"><?php echo $res['customer_name']; ?></p>
-                        <?php if (!empty($res['contact_number'])): ?>
-                        <p class="text-[10px] text-secondary font-medium mt-0.5"><i class="fa-solid fa-phone text-[8px] mr-1"></i><?php echo $res['contact_number']; ?></p>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <div class="pt-2 border-t border-border/50">
-                        <div class="flex items-center gap-2 text-accent mb-1">
-                            <i class="fa-solid fa-calendar-check text-xs"></i>
-                            <span class="text-[10px] font-bold uppercase tracking-widest">Reservation Details</span>
-                        </div>
-                        <p class="text-sm font-bold text-primary mb-1">
-                            <i class="fa-solid fa-hourglass-half text-accent text-xs mr-1"></i>
-                            Duration: <?php echo $durationDays !== null ? $durationDays : 'N/A'; ?><?php echo $durationDays !== null ? ' day' . ($durationDays > 1 ? 's' : '') : ''; ?>
-                        </p>
-                        <?php if ($hasExpirationDate): ?>
-                        <p class="text-xs text-secondary mb-1">
-                            <i class="fa-solid fa-calendar-xmark text-secondary/40 mr-1"></i>
-                            Expires: <?php echo date('F d, Y', strtotime($res['expiration_date'])); ?>
-                        </p>
-                        <?php endif; ?>
-                        <?php if ($remainingDays !== null && $remainingDays >= 0): ?>
-                        <p class="text-xs font-bold <?php echo $remainingDays <= 1 ? 'text-red-600 bg-red-50 px-2 py-1 rounded-full' : 'text-green-600 bg-green-50 px-2 py-1 rounded-full'; ?>">
-                            <i class="fa-solid fa-bolt mr-1"></i>
-                            <?php echo $remainingDays; ?> day<?php echo $remainingDays > 1 ? 's' : ''; ?> remaining
-                        </p>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <?php if (!empty($res['notes'])): ?>
-                    <div class="pt-2 border-t border-border/50">
-                        <div class="flex items-center gap-2 text-secondary/40 mb-1">
-                            <i class="fa-solid fa-note-sticky text-[10px]"></i>
-                            <span class="text-[9px] font-bold uppercase tracking-widest">Notes</span>
-                        </div>
-                        <p class="text-[11px] text-secondary leading-relaxed italic"><?php echo $res['notes']; ?></p>
-                    </div>
-                    <?php endif; ?>
-
-                    <div class="pt-2 border-t border-border/50 flex items-center justify-between">
-                        <span class="text-[9px] font-bold text-secondary/40 uppercase tracking-widest">Reserved On</span>
-                        <p class="text-[10px] text-secondary/50 font-medium"><?php echo date('M d, Y', strtotime($res['created_at'])); ?></p>
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <?php if ($res['status'] == 'reserved' || $res['status'] == 'pending'): ?>
-                    <button @click="selectedReservation = <?php echo htmlspecialchars(json_encode($res)); ?>; showPaymentModal = true; paymentMethod = 'cash'" 
-                        class="w-full bg-accent text-white py-2.5 rounded-lg font-bold text-xs hover:bg-accent-hover transition-all shadow-sm">
-                        Process Payment
-                    </button>
-                    <?php elseif ($res['status'] == 'paid'): ?>
-                    <button disabled class="w-full bg-green-500 text-white py-2.5 rounded-lg font-bold text-xs cursor-not-allowed opacity-80">
-                        Payment Verified
-                    </button>
-                    <?php elseif ($res['status'] == 'expired'): ?>
-                    <button disabled class="w-full bg-red-50 text-red-600 py-2.5 rounded-lg font-bold text-xs cursor-not-allowed border border-red-100">
-                        Reservation Expired
-                    </button>
-                    <?php else: ?>
-                    <button disabled class="w-full bg-background text-secondary/40 border border-border py-2.5 rounded-lg font-bold text-xs cursor-not-allowed">
-                        <?php echo ucfirst($res['status']); ?>
-                    </button>
-                    <?php endif; ?>
-                    
-                    <div class="grid grid-cols-2 gap-2">
-                        <form action="<?php echo $base_url; ?>/reservations/complete" method="POST">
-                            <input type="hidden" name="id" value="<?php echo $res['id']; ?>">
-                            <button type="submit" <?php echo $res['status'] != 'paid' ? 'disabled' : ''; ?>
-                                class="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all <?php 
-                                    echo $res['status'] == 'paid' 
-                                    ? 'bg-background text-green-600 border border-green-100 hover:bg-green-600 hover:text-white' 
-                                    : 'bg-background text-secondary/20 border border-border cursor-not-allowed'; 
-                                ?>">
-                                Finalize
-                            </button>
-                        </form>
-                        <form action="<?php echo $base_url; ?>/reservations/cancel" method="POST">
-                            <input type="hidden" name="id" value="<?php echo $res['id']; ?>">
-                            <button type="submit" <?php echo ($res['status'] == 'completed' || $res['status'] == 'cancelled' || $res['status'] == 'expired') ? 'disabled' : ''; ?>
-                                class="w-full py-2.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all <?php 
-                                    echo ($res['status'] == 'completed' || $res['status'] == 'cancelled' || $res['status'] == 'expired')
-                                    ? 'bg-background text-secondary/20 border border-border cursor-not-allowed'
-                                    : 'bg-background text-red-600 border border-red-100 hover:bg-red-600 hover:text-white';
-                                ?>">
-                                Cancel
-                            </button>
-                        </form>
-                    </div>
-                </div>
+        <div class="bg-surface rounded-2xl shadow-sm border border-border overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-background border-b border-border">
+                            <th class="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest">Customer</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest">Item</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest">Location</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest">Status</th>
+                            <th class="px-6 py-4 text-[10px] font-bold text-secondary uppercase tracking-widest text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        <?php foreach ($reservations as $res): ?>
+                        <tr @click="toggleRow(<?php echo $res['id']; ?>)" 
+                            class="hover:bg-background/50 transition-all cursor-pointer group">
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-primary"><?php echo $res['customer_name']; ?></span>
+                                    <span class="text-[10px] text-secondary"><?php echo $res['contact_number']; ?></span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-bold text-primary"><?php echo $res['item_name']; ?></span>
+                                    <span class="text-[10px] text-accent font-bold">₱<?php echo number_format($res['price'], 2); ?></span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-location-dot text-accent text-xs"></i>
+                                    <span class="text-xs font-medium text-primary"><?php echo $res['location_indicator'] ?: 'Not set'; ?></span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider <?php 
+                                    echo $res['status'] == 'reserved' || $res['status'] == 'pending' ? 'bg-yellow-50 text-yellow-600 border border-yellow-100' : 
+                                        ($res['status'] == 'paid' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 
+                                        ($res['status'] == 'completed' ? 'bg-green-50 text-green-600 border border-green-100' : 
+                                        'bg-red-50 text-red-600 border border-red-100')); 
+                                ?>"><?php echo $res['status']; ?></span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <i class="fa-solid fa-chevron-down text-secondary/30 transition-transform duration-300" 
+                                   :class="expandedRows.includes(<?php echo $res['id']; ?>) ? 'rotate-180' : ''"></i>
+                            </td>
+                        </tr>
+                        <!-- Expanded Content -->
+                        <tr x-show="expandedRows.includes(<?php echo $res['id']; ?>)" x-cloak x-transition class="bg-background/30">
+                            <td colspan="5" class="px-6 py-8">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                    <div class="space-y-4">
+                                        <h4 class="text-[10px] font-bold text-secondary uppercase tracking-widest">Proof of Reservation</h4>
+                                        <div class="aspect-[4/3] bg-surface rounded-xl border border-border overflow-hidden">
+                                            <?php if ($res['proof_of_reservation']): ?>
+                                                <img src="<?php echo $res['proof_of_reservation']; ?>" class="w-full h-full object-cover">
+                                            <?php else: ?>
+                                                <div class="w-full h-full flex flex-col items-center justify-center text-secondary/20">
+                                                    <i class="fa-solid fa-camera text-3xl mb-2"></i>
+                                                    <p class="text-[10px] font-bold">No photo available</p>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-4">
+                                        <h4 class="text-[10px] font-bold text-secondary uppercase tracking-widest">Reservation Details</h4>
+                                        <div class="space-y-3">
+                                            <div class="flex justify-between text-xs">
+                                                <span class="text-secondary">Reserved On:</span>
+                                                <span class="font-bold text-primary"><?php echo date('M d, Y', strtotime($res['created_at'])); ?></span>
+                                            </div>
+                                            <div class="flex justify-between text-xs">
+                                                <span class="text-secondary">Duration:</span>
+                                                <span class="font-bold text-primary"><?php echo $res['duration_days']; ?> days</span>
+                                            </div>
+                                            <div class="flex justify-between text-xs">
+                                                <span class="text-secondary">Expires:</span>
+                                                <span class="font-bold text-red-500"><?php echo date('M d, Y', strtotime($res['expiration_date'])); ?></span>
+                                            </div>
+                                            <?php if ($res['notes']): ?>
+                                            <div class="pt-2">
+                                                <span class="text-secondary text-[10px] font-bold uppercase tracking-widest block mb-1">Notes:</span>
+                                                <p class="text-xs text-primary italic"><?php echo $res['notes']; ?></p>
+                                            </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col justify-end gap-3">
+                                        <?php if ($res['status'] == 'reserved' || $res['status'] == 'pending'): ?>
+                                        <button @click="openPaymentModal(<?php echo htmlspecialchars(json_encode($res)); ?>)"
+                                            class="w-full bg-accent text-white py-3 rounded-xl font-bold text-xs hover:bg-accent-hover transition-all shadow-sm">
+                                            Process Payment
+                                        </button>
+                                        <?php elseif ($res['status'] == 'paid'): ?>
+                                        <form action="<?php echo $base_url; ?>/reservations/complete" method="POST">
+                                            <input type="hidden" name="id" value="<?php echo $res['id']; ?>">
+                                            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-xs hover:bg-green-700 transition-all shadow-sm">
+                                                Finalize Sale
+                                            </button>
+                                        </form>
+                                        <?php endif; ?>
+                                        
+                                        <?php if (!in_array($res['status'], ['completed', 'cancelled', 'expired'])): ?>
+                                        <form action="<?php echo $base_url; ?>/reservations/cancel" method="POST" onsubmit="return confirm('Cancel this reservation?')">
+                                            <input type="hidden" name="id" value="<?php echo $res['id']; ?>">
+                                            <button type="submit" class="w-full bg-surface border border-red-100 text-red-600 py-3 rounded-xl font-bold text-xs hover:bg-red-50 transition-all">
+                                                Cancel Reservation
+                                            </button>
+                                        </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
-            <?php endforeach; ?>
-
+            
             <?php if (empty($reservations)): ?>
-            <div class="col-span-full flex flex-col items-center justify-center py-20 text-secondary/20">
+            <div class="flex flex-col items-center justify-center py-20 text-secondary/20">
                 <i class="fa-solid fa-calendar-xmark text-5xl mb-4"></i>
-                <p class="text-sm font-medium tracking-tight">No active reservations</p>
+                <p class="text-sm font-medium">No active reservations</p>
             </div>
             <?php endif; ?>
         </div>
 
         <!-- Payment Modal -->
         <div x-show="showPaymentModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/40 backdrop-blur-sm">
-            <div @click.away="showPaymentModal = false" class="bg-surface w-full max-w-md rounded-xl overflow-hidden shadow-xl scale-in border border-border">
+            <div @click.away="showPaymentModal = false" class="bg-surface w-full max-w-md rounded-2xl overflow-hidden shadow-xl scale-in border border-border">
                 <div class="p-6 border-b border-border flex items-center justify-between">
                     <h3 class="text-lg font-bold text-primary">Confirm Payment</h3>
                     <button @click="showPaymentModal = false" class="text-secondary hover:text-primary transition-colors">
@@ -190,13 +159,9 @@ $base_url = $base_url ?? '';
                             <span class="text-secondary text-xs font-medium">Customer</span>
                             <span class="font-bold text-primary text-sm" x-text="selectedReservation ? selectedReservation.customer_name : ''"></span>
                         </div>
-                        <div class="flex justify-between items-center py-2 border-b border-border/50">
-                            <span class="text-secondary text-xs font-medium">Item</span>
-                            <span class="font-bold text-primary text-sm" x-text="selectedReservation ? selectedReservation.item_name : ''"></span>
-                        </div>
                         <div class="flex justify-between items-center py-2">
-                            <span class="text-secondary text-xs font-medium">Final Amount</span>
-                            <span class="text-xl font-bold text-primary">₱<span x-text="selectedReservation ? getDiscountedPrice(parseFloat(selectedReservation.price), selectedReservation.tag_color).toLocaleString(undefined, {minimumFractionDigits: 2}) : '0.00'"></span></span>
+                            <span class="text-secondary text-xs font-medium">Total to Pay</span>
+                            <span class="text-2xl font-bold text-primary">₱<span x-text="selectedReservation ? parseFloat(selectedReservation.price).toFixed(2) : '0.00'"></span></span>
                         </div>
                     </div>
 
@@ -220,17 +185,8 @@ $base_url = $base_url ?? '';
                         </div>
                     </div>
 
-                    <!-- GCash QR Display -->
-                    <div x-show="paymentMethod === 'gcash'" x-transition class="flex flex-col items-center justify-center p-6 bg-background rounded-xl border border-dashed border-border">
-                        <p class="text-[9px] font-bold text-[#007DFE] uppercase tracking-widest mb-3">Scan to Pay with GCash</p>
-                        <div class="w-32 h-32 bg-white p-2 rounded-lg shadow-sm border border-border">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=GCash_Payment_Placeholder" class="w-full h-full opacity-80">
-                        </div>
-                        <p class="mt-3 text-[9px] text-secondary font-bold uppercase tracking-widest">ThriftPOS Store</p>
-                    </div>
-
-                    <button type="submit" class="w-full bg-accent text-white py-4 rounded-lg font-bold text-sm hover:bg-accent-hover transition-all shadow-sm">
-                        Confirm Transaction
+                    <button type="submit" class="w-full bg-accent text-white py-4 rounded-xl font-bold text-sm hover:bg-accent-hover transition-all shadow-sm">
+                        Complete Payment
                     </button>
                 </form>
             </div>
@@ -245,31 +201,32 @@ function reservationsApp() {
         showPaymentModal: false,
         selectedReservation: null,
         paymentMethod: 'cash',
+        expandedRows: [],
+        
         init() {
             this.$watch('darkMode', val => localStorage.setItem('darkMode', val));
-            window.addEventListener('darkModeChanged', (e) => {
-                this.darkMode = e.detail;
-            });
+            window.addEventListener('darkModeChanged', (e) => this.darkMode = e.detail);
         },
-        getDiscountedPrice(price, tagColor) {
-            const discounts = {
-                'red': 0.50,
-                'blue': 0.30,
-                'green': 0.20,
-                'yellow': 0.00
-            };
-            const rate = discounts[tagColor] || 0;
-            return price - (price * rate);
+
+        toggleRow(id) {
+            if (this.expandedRows.includes(id)) {
+                this.expandedRows = this.expandedRows.filter(rowId => rowId !== id);
+            } else {
+                this.expandedRows.push(id);
+            }
+        },
+
+        openPaymentModal(res) {
+            this.selectedReservation = res;
+            this.showPaymentModal = true;
         }
     }
 }
 </script>
 
 <style>
-    @keyframes scale-in {
-        from { transform: scale(0.95); opacity: 0; }
-        to { transform: scale(1); opacity: 1; }
-    }
+    [x-cloak] { display: none !important; }
+    @keyframes scale-in { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     .scale-in { animation: scale-in 0.2s ease-out forwards; }
 </style>
 

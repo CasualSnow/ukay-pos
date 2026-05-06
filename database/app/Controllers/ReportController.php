@@ -10,34 +10,24 @@ class ReportController extends Controller {
     public function index() {
         $db = getDB();
         
-        // Sales Report (Daily for last 7 days)
-        $dailySales = $db->query("
-            SELECT DATE(created_at) as date, SUM(total_amount) as total, COUNT(*) as count 
+        $startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-30 days'));
+        $endDate = $_GET['end_date'] ?? date('Y-m-d');
+
+        // Sales Report (Daily filtered by date)
+        $stmt = $db->prepare("
+            SELECT DATE(created_at) as date, SUM(COALESCE(bargained_price, total_amount)) as total, COUNT(*) as count 
             FROM sales 
+            WHERE DATE(created_at) BETWEEN ? AND ?
             GROUP BY DATE(created_at) 
-            ORDER BY date DESC 
-            LIMIT 7
-        ")->fetchAll();
-
-        // Staff Performance
-        $staffPerformance = $db->query("
-            SELECT u.username, COUNT(s.id) as sales_count, SUM(s.total_amount) as total_revenue
-            FROM users u
-            LEFT JOIN sales s ON u.id = s.user_id
-            GROUP BY u.id
-        ")->fetchAll();
-
-        // Inventory Status
-        $inventoryStatus = $db->query("
-            SELECT status, COUNT(*) as count
-            FROM items
-            GROUP BY status
-        ")->fetchAll();
+            ORDER BY date DESC
+        ");
+        $stmt->execute([$startDate, $endDate]);
+        $dailySales = $stmt->fetchAll();
 
         $this->view('admin/reports', [
             'dailySales' => $dailySales,
-            'staffPerformance' => $staffPerformance,
-            'inventoryStatus' => $inventoryStatus
+            'startDate' => $startDate,
+            'endDate' => $endDate
         ]);
     }
 }
