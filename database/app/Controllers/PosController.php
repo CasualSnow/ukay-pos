@@ -88,6 +88,9 @@ class PosController extends Controller {
 
         $db = getDB();
         try {
+            // Error logging for debugging
+            error_log("Processing checkout: " . json_encode($data));
+
             $db->beginTransaction();
 
             $stmtCheck = $db->prepare('SELECT status, stock FROM items WHERE id = ? FOR UPDATE');
@@ -95,53 +98,69 @@ class PosController extends Controller {
             
             $itemCount = 0;
             foreach ($items as $item) {
-                $itemCount += $item['quantity'];
+                $itemCount += (int)$item['quantity'];
             }
 
             $stmtInsertSale->execute([
                 $_SESSION['user_id'], 
-                $total, 
-                $bargainedPrice,
+                (float)$total, 
+                $bargainedPrice !== null ? (float)$bargainedPrice : null,
                 $paymentMethod, 
                 'paid', 
-                $cashReceived, 
-                $change, 
+                $cashReceived !== null ? (float)$cashReceived : null, 
+                $change !== null ? (float)$change : null, 
                 $proofOfPurchase,
-                $itemCount
+                (int)$itemCount
             ]);
             $saleId = $db->lastInsertId();
 
             $stmtInsertItem = $db->prepare('INSERT INTO sale_items (sale_id, item_id, price, discount, final_price) VALUES (?, ?, ?, ?, ?)');
-            $stmtUpdateItem = $db->prepare('UPDATE items SET stock = stock - ?, status = CASE WHEN stock <= 0 THEN "sold" ELSE status END WHERE id = ?');
+            $stmtUpdateItem = $db->prepare('UPDATE items SET stock = stock - ?, status = CASE WHEN stock - ? <= 0 THEN "sold" ELSE status END WHERE id = ?');
 
             foreach ($items as $item) {
-                $stmtCheck->execute([$item['id']]);
+                $itemId = $item['id'];
+                $quantity = (int)$item['quantity'];
+                
+                $stmtCheck->execute([$itemId]);
                 $storedItem = $stmtCheck->fetch();
                 
-                if (!$storedItem || $storedItem['status'] !== 'available' || $storedItem['stock'] < $item['quantity']) {
-                    throw new Exception('Item ' . $item['name'] . ' is no longer available in the requested quantity.');
+                if (!$storedItem) {
+                    throw new Exception('Item ID ' . $itemId . ' not found.');
+                }
+                
+                if ($storedItem['status'] !== 'available' && $storedItem['status'] !== 'reserved') {
+                    throw new Exception('Item ' . $item['name'] . ' is already ' . $storedItem['status']);
                 }
 
-                $price = (float) $item['price'];
-                $quantity = (int) $item['quantity'];
+                if ($storedItem['stock'] < $quantity) {
+                    throw new Exception('Not enough stock for ' . $item['name']);
+                }
+
+                $price = (float)$item['price'];
                 
-                // For sale_items, we'll store per unit price. 
-                // Since bargained_price is for the whole sale, we don't necessarily need to distribute it to items unless required.
-                // But let's store the original price as final_price since discounts are removed.
+                // Insert individual items into sale_items
                 for ($i = 0; $i < $quantity; $i++) {
-                    $stmtInsertItem->execute([$saleId, $item['id'], $price, 0, $price]);
+                    $stmtInsertItem->execute([$saleId, $itemId, $price, 0, $price]);
                 }
                 
-                $stmtUpdateItem->execute([$quantity, $item['id']]);
+                // Update item stock and status
+                $stmtUpdateItem->execute([$quantity, $quantity, $itemId]);
             }
 
             $db->commit();
-            $this->json(['success' => true, 'sale_id' => $saleId]);
+            
+            if (ob_get_level()) ob_end_clean();
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'sale_id' => $saleId]);
+            exit;
         } catch (Exception $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
-            $this->json(['success' => false, 'message' => $e->getMessage()]);
+            error_log("Checkout Error: " . $e->getMessage());
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
         }
     }
 

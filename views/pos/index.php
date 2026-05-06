@@ -353,9 +353,9 @@ $base_url = $base_url ?? '';
                 <div class="flex flex-col gap-3">
                     <button type="button" @click="startCameraForReservation()" class="w-full bg-surface border border-border py-3 rounded-xl font-bold text-xs hover:bg-background transition-all">
                         <i class="fa-solid fa-camera mr-2" :class="proofOfReservation ? 'text-green-500' : 'text-accent'"></i>
-                        <span x-text="proofOfReservation ? 'Change Proof Photo' : 'Take Proof Photo (Required)'"></span>
+                        <span x-text="proofOfReservation ? 'Change Proof Photo' : 'Take Proof Photo (Optional)'"></span>
                     </button>
-                    <button type="submit" :disabled="!customerName || !proofOfReservation || loading"
+                    <button type="submit" :disabled="!customerName || loading"
                         class="w-full bg-black text-white py-4 rounded-xl font-bold text-sm hover:bg-gray-900 transition-all disabled:opacity-50 shadow-lg active:scale-[0.98]">
                         <span x-show="!loading">Confirm Reservation</span>
                         <span x-show="loading"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Processing...</span>
