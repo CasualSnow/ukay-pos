@@ -264,8 +264,13 @@ $base_url = $base_url ?? '';
     <!-- GCash Modal -->
     <div x-show="paymentModal === 'gcash'" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-primary/40 backdrop-blur-sm">
         <div @click.away="paymentModal = null" class="bg-surface w-full max-w-md rounded-2xl overflow-hidden shadow-xl scale-in border border-border">
-            <div class="bg-[#007DFE] p-10 text-white text-center">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/52/GCash_logo.svg/1200px-GCash_logo.svg.png" class="h-6 mx-auto mb-4 brightness-0 invert">
+            <div class="bg-[#007DFE] p-10 text-white text-center relative">
+                <div class="flex items-center justify-center gap-2 mb-4">
+                    <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                        <i class="fa-solid fa-mobile-screen text-[#007DFE]"></i>
+                    </div>
+                    <span class="text-2xl font-black tracking-tight italic">GCash</span>
+                </div>
                 <p class="text-[10px] opacity-80 uppercase tracking-widest font-bold">Total Amount to Scan</p>
                 <h2 class="text-4xl font-black mt-1">₱<span x-text="bargainedPrice || cartTotal().total"></span></h2>
             </div>
@@ -276,9 +281,9 @@ $base_url = $base_url ?? '';
                 <div class="space-y-4">
                     <button @click="startCamera()" class="w-full bg-surface border border-border py-3 rounded-xl font-bold text-sm hover:bg-background transition-all">
                         <i class="fa-solid fa-camera mr-2" :class="proofOfPurchase ? 'text-green-500' : 'text-accent'"></i>
-                        <span x-text="proofOfPurchase ? 'Change Proof Photo' : 'Take Proof Photo (Required)'"></span>
+                        <span x-text="proofOfPurchase ? 'Change Proof Photo' : 'Take Proof Photo (Optional)'"></span>
                     </button>
-                    <button @click="processPayment('gcash')" :disabled="!proofOfPurchase || loading"
+                    <button @click="processPayment('gcash')" :disabled="loading"
                         class="w-full bg-[#007DFE] text-white py-4 rounded-xl font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-500/20">
                         <span x-show="!loading">Confirm Payment Received</span>
                         <span x-show="loading"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Processing...</span>
