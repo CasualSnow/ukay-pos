@@ -189,10 +189,11 @@ class PosController extends Controller {
                 throw new Exception('Base64 decode failed');
             }
             
-            $uploadDir = __DIR__ . '/../../../public/uploads/';
-            if (!is_dir($uploadDir)) {
-                if (!mkdir($uploadDir, 0777, true)) {
-                    throw new Exception('Failed to create upload directory');
+            $uploadDir = realpath(__DIR__ . '/../../../public/uploads') . DIRECTORY_SEPARATOR;
+            if (!$uploadDir || !is_dir($uploadDir)) {
+                $uploadDir = __DIR__ . '/../../../public/uploads/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
                 }
             }
             

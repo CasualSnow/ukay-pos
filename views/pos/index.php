@@ -529,12 +529,16 @@ function posApp() {
         async confirmCapture() {
             this.loading = true;
             try {
+                console.log("Attempting to upload image...");
                 const response = await fetch(this.resolveUrl('/api/upload-capture'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ image: this.capturedImage })
                 });
+                
                 const data = await response.json();
+                console.log("Upload response:", data);
+                
                 if (data.success) {
                     if (this.isReservationCamera) {
                         this.proofOfReservation = data.file_url;
@@ -544,10 +548,12 @@ function posApp() {
                     this.showToast("Photo captured!");
                     this.stopCamera();
                 } else {
-                    this.showToast("Failed to upload photo", "error");
+                    console.error("Upload failed:", data.message);
+                    this.showToast("Failed to upload photo: " + data.message, "error");
                 }
             } catch (err) {
-                this.showToast("Upload error", "error");
+                console.error("Upload error:", err);
+                this.showToast("Upload error. Check console.", "error");
             } finally {
                 this.loading = false;
             }
