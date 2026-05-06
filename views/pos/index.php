@@ -74,19 +74,26 @@ $base_url = $base_url ?? '';
                                 <p class="text-xs text-secondary mb-4" x-text="`${item.gender} • ${item.size || 'No Size'}`"></p>
                             </div>
 
-                            <div class="flex items-center gap-3">
-                                <div class="flex items-center bg-background border border-border rounded-lg overflow-hidden h-10">
-                                    <button @click="item.qty = Math.max(1, (item.qty || 1) - 1)" class="px-3 hover:bg-surface transition-colors border-r border-border text-secondary">
-                                        <i class="fa-solid fa-minus text-[10px]"></i>
-                                    </button>
-                                    <input type="number" x-model.number="item.qty" class="w-10 text-center bg-transparent text-sm font-bold outline-none" min="1" :max="item.stock">
-                                    <button @click="item.qty = Math.min(item.stock, (item.qty || 1) + 1)" class="px-3 hover:bg-surface transition-colors border-l border-border text-secondary">
-                                        <i class="fa-solid fa-plus text-[10px]"></i>
+                            <div class="flex flex-col gap-2 mt-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center bg-background border border-border rounded-lg overflow-hidden h-10">
+                                        <button @click="item.qty = Math.max(1, (item.qty || 1) - 1)" class="px-3 hover:bg-surface transition-colors border-r border-border text-secondary">
+                                            <i class="fa-solid fa-minus text-[10px]"></i>
+                                        </button>
+                                        <input type="number" x-model.number="item.qty" class="w-10 text-center bg-transparent text-sm font-bold outline-none" min="1" :max="item.stock">
+                                        <button @click="item.qty = Math.min(item.stock, (item.qty || 1) + 1)" class="px-3 hover:bg-surface transition-colors border-l border-border text-secondary">
+                                            <i class="fa-solid fa-plus text-[10px]"></i>
+                                        </button>
+                                    </div>
+                                    <button @click="addToCart(item)" :disabled="item.status !== 'available' || item.stock <= 0"
+                                        class="flex-1 bg-accent text-white h-10 rounded-lg text-xs font-bold hover:bg-accent-hover transition-all shadow-sm disabled:opacity-50">
+                                        Add to Cart
                                     </button>
                                 </div>
-                                <button @click="addToCart(item)" :disabled="item.status !== 'available' || item.stock <= 0"
-                                    class="flex-1 bg-accent text-white h-10 rounded-lg text-xs font-bold hover:bg-accent-hover transition-all shadow-sm disabled:opacity-50">
-                                    Add to Cart
+                                <button @click="openReservationModal(item)" :disabled="item.status !== 'available' || item.stock <= 0"
+                                    class="w-full bg-surface border border-border text-primary h-9 rounded-lg text-[10px] font-bold hover:bg-background transition-all disabled:opacity-50">
+                                    <i class="fa-solid fa-calendar-plus mr-1.5 text-accent"></i>
+                                    Reserve Item
                                 </button>
                             </div>
                             
