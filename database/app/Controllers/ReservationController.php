@@ -57,7 +57,7 @@ class ReservationController extends Controller {
         $this->checkAndExpireReservations($db);
 
         $reservations = $db->query("
-            SELECT r.*, i.name as item_name, i.price, i.image_url, i.tag_color
+            SELECT r.*, i.name as item_name, i.price
             FROM reservations r 
             JOIN items i ON r.item_id = i.id 
             ORDER BY r.created_at DESC
