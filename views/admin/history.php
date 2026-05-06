@@ -8,12 +8,16 @@
             <div>
                 <h1 class="text-2xl font-extrabold text-primary tracking-tight">Sales History</h1>
                 <p class="text-xs text-secondary mt-1">Review all items sold by date</p>
+                <div class="mt-2 inline-flex items-center px-2 py-1 bg-accent/10 rounded text-[10px] font-bold text-accent">
+                    <i class="fa-solid fa-clock mr-1"></i>
+                    System Time: <?php echo date('h:i A'); ?>
+                </div>
             </div>
 
             <form action="" method="GET" class="flex items-center gap-3 bg-surface p-2 rounded-xl border border-border">
                 <div class="flex items-center gap-2 px-3">
                     <i class="fa-solid fa-calendar text-accent text-xs"></i>
-                    <input type="date" name="date" value="<?php echo $selectedDate; ?>" 
+                    <input type="date" name="date" id="history-date-picker" value="<?php echo $selectedDate; ?>" 
                         onchange="this.form.submit()"
                         class="bg-transparent text-xs font-bold text-primary outline-none">
                 </div>

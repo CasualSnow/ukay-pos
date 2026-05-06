@@ -10,6 +10,7 @@ class HistoryController extends Controller {
     public function index() {
         $db = getDB();
         
+        // Use today's date if no date is provided
         $date = $_GET['date'] ?? date('Y-m-d');
         
         $stmt = $db->prepare("
@@ -23,6 +24,11 @@ class HistoryController extends Controller {
         ");
         $stmt->execute([$date]);
         $sales = $stmt->fetchAll();
+
+        // Debug: Log if no sales found for the date
+        if (empty($sales)) {
+            error_log("No sales found in history for date: " . $date);
+        }
 
         $this->view('admin/history', [
             'sales' => $sales,
