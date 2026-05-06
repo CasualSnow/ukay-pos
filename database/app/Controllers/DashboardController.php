@@ -15,16 +15,22 @@ class DashboardController extends Controller {
         $salesToday = $db->query("SELECT SUM(total_amount) as total FROM sales WHERE DATE(created_at) = CURDATE()")->fetch();
         $totalSales = $db->query("SELECT SUM(total_amount) as total FROM sales")->fetch();
         
-        // Accurate Inventory Counts from the same source of truth
+        // Accurate Inventory Unit Counts
         $inventoryCounts = $db->query("
             SELECT 
-                COUNT(CASE WHEN status = 'available' THEN 1 END) as available,
-                COUNT(CASE WHEN status = 'sold' THEN 1 END) as sold,
-                COUNT(CASE WHEN status = 'reserved' THEN 1 END) as reserved,
-                COUNT(*) as total
+                SUM(CASE WHEN status = 'available' THEN stock ELSE 0 END) as available,
+                SUM(CASE WHEN status = 'sold' THEN stock ELSE 0 END) as sold,
+                SUM(CASE WHEN status = 'reserved' THEN stock ELSE 0 END) as reserved,
+                SUM(stock) as total
             FROM items
             WHERE is_deleted = 0
         ")->fetch();
+
+        // Ensure we handle NULL if table is empty
+        $inventoryCounts['available'] = $inventoryCounts['available'] ?? 0;
+        $inventoryCounts['sold'] = $inventoryCounts['sold'] ?? 0;
+        $inventoryCounts['reserved'] = $inventoryCounts['reserved'] ?? 0;
+        $inventoryCounts['total'] = $inventoryCounts['total'] ?? 0;
         
         // Recent Sales
         $recentSales = $db->query("SELECT s.*, u.username FROM sales s JOIN users u ON s.user_id = u.id ORDER BY s.created_at DESC LIMIT 5")->fetchAll();
@@ -43,10 +49,10 @@ class DashboardController extends Controller {
             'stats' => [
                 'today' => $salesToday['total'] ?? 0,
                 'total' => $totalSales['total'] ?? 0,
-                'items_sold' => $inventoryCounts['sold'] ?? 0,
-                'available' => $inventoryCounts['available'] ?? 0,
-                'reserved' => $inventoryCounts['reserved'] ?? 0,
-                'total_items' => $inventoryCounts['total'] ?? 0
+                'items_sold' => $inventoryCounts['sold'],
+                'available' => $inventoryCounts['available'],
+                'reserved' => $inventoryCounts['reserved'],
+                'total_items' => $inventoryCounts['total']
             ],
             'recentSales' => $recentSales,
             'categoryStats' => $salesByCategory,
