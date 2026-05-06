@@ -121,9 +121,11 @@ class ReservationController extends Controller {
             // Calculate expiration date
             $expirationDate = date('Y-m-d H:i:s', strtotime('+' . $durationDays . ' days'));
 
-            $stmt = $db->prepare('INSERT INTO reservations (item_id, customer_name, contact_number, notes, status, duration_days, expiration_date, location_indicator, proof_of_reservation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            // Check columns to use correct names (handling both item_id and proof_of_reservation)
+            $stmt = $db->prepare('INSERT INTO reservations (item_id, product_id, customer_name, contact_number, notes, status, duration_days, expiration_date, location_indicator, proof_of_reservation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $itemId, 
+                $itemId, // Fill both for safety
                 $customerName, 
                 $contactNumber, 
                 $notes, 
