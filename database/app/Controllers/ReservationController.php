@@ -234,7 +234,7 @@ class ReservationController extends Controller {
             $db->beginTransaction();
 
             $stmt = $db->prepare(
-                'SELECT r.*, i.price, i.tag_color, i.id as item_id 
+                'SELECT r.*, i.price, i.id as item_id 
                 FROM reservations r 
                 JOIN items i ON r.item_id = i.id 
                 WHERE r.id = ? AND r.status IN (\'reserved\', \'pending\')'
@@ -246,29 +246,17 @@ class ReservationController extends Controller {
                 throw new Exception('Reservation not found or already processed.');
             }
 
-            $tag_key = 'discount_' . $res['tag_color'];
-            $stmtDisc = $db->prepare('SELECT setting_value FROM settings WHERE setting_key = ?');
-            $stmtDisc->execute([$tag_key]);
-            $discount_rate = (float) $stmtDisc->fetchColumn();
+            $final_price = (float)$res['price'];
 
-            $discount_amount = $res['price'] * $discount_rate;
-            $final_price = $res['price'] - $discount_amount;
-
-            $salesColumns = $db->query("SHOW COLUMNS FROM sales LIKE 'status'")->fetch();
-            if ($salesColumns) {
-                $stmtSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, status) VALUES (?, ?, ?, ?)');
-                $stmtSale->execute([$user_id, $final_price, $payment_method, 'paid']);
-            } else {
-                $stmtSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method) VALUES (?, ?, ?)');
-                $stmtSale->execute([$user_id, $final_price, $payment_method]);
-            }
+            $stmtSale = $db->prepare('INSERT INTO sales (user_id, total_amount, payment_method, status, item_count) VALUES (?, ?, ?, ?, ?)');
+            $stmtSale->execute([$user_id, $final_price, $payment_method, 'paid', 1]);
             $sale_id = $db->lastInsertId();
 
             $stmtSaleItem = $db->prepare('INSERT INTO sale_items (sale_id, item_id, price, discount, final_price) VALUES (?, ?, ?, ?, ?)');
-            $stmtSaleItem->execute([$sale_id, $res['item_id'], $res['price'], $discount_amount, $final_price]);
+            $stmtSaleItem->execute([$sale_id, $res['item_id'], $res['price'], 0, $final_price]);
 
-            $stmtItem = $db->prepare('UPDATE items SET status = ? WHERE id = ?');
-            $stmtItem->execute(['sold', $res['item_id']]);
+            $stmtItem = $db->prepare('UPDATE items SET stock = stock - 1, status = CASE WHEN stock - 1 <= 0 THEN "sold" ELSE status END WHERE id = ?');
+            $stmtItem->execute([$res['item_id']]);
 
             $stmtRes = $db->prepare('UPDATE reservations SET status = ? WHERE id = ?');
             $stmtRes->execute(['paid', $id]);
