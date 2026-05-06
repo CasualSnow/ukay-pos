@@ -2,7 +2,7 @@
 
 class Item extends Model {
     public function getAll($category = null, $search = null) {
-        $query = "SELECT * FROM items WHERE 1=1";
+        $query = "SELECT * FROM items WHERE is_deleted = 0";
         $params = [];
 
         if ($category) {
@@ -22,13 +22,13 @@ class Item extends Model {
     }
 
     public function findById($id) {
-        $stmt = $this->db->prepare("SELECT * FROM items WHERE id = ?");
+        $stmt = $this->db->prepare("SELECT * FROM items WHERE id = ? AND is_deleted = 0");
         $stmt->execute([$id]);
         return $stmt->fetch();
     }
 
     public function getCategories() {
-        $stmt = $this->db->query("SELECT DISTINCT category FROM items");
+        $stmt = $this->db->query("SELECT DISTINCT category FROM items WHERE is_deleted = 0");
         $dbCategories = $stmt->fetchAll(PDO::FETCH_COLUMN);
         
         $defaultCategories = ['T-Shirts', 'Pants', 'Jackets', 'Shoes', 'Accessories', 'Others'];

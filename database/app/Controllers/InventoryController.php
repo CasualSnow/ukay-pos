@@ -71,7 +71,7 @@ class InventoryController extends Controller {
 
     public function delete() {
         $db = getDB();
-        $stmt = $db->prepare("DELETE FROM items WHERE id = ?");
+        $stmt = $db->prepare("UPDATE items SET is_deleted = 1 WHERE id = ?");
         $stmt->execute([$_POST['id']]);
         $this->redirect('/inventory');
     }

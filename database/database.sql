@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS items (
     tag_color ENUM('red', 'blue', 'green', 'yellow') NOT NULL,
     image_url VARCHAR(255),
     status ENUM('available', 'sold', 'reserved') DEFAULT 'available',
+    is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

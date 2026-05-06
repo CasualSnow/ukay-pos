@@ -23,6 +23,7 @@ class DashboardController extends Controller {
                 COUNT(CASE WHEN status = 'reserved' THEN 1 END) as reserved,
                 COUNT(*) as total
             FROM items
+            WHERE is_deleted = 0
         ")->fetch();
         
         // Recent Sales
