@@ -165,30 +165,18 @@ class PosController extends Controller {
     }
 
     public function uploadCapture() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (!isset($data['image'])) {
-            header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'No image data']);
-            exit;
-        }
-
         try {
-            $img = $data['image'];
-            // Handle different base64 formats if necessary
-            if (preg_match('/^data:image\/(\w+);base64,/', $img, $type)) {
-                $img = substr($img, strpos($img, ',') + 1);
-                $type = strtolower($type[1]); // png, jpg, etc
-            } else {
-                throw new Exception('Invalid image format');
+            $file = $_FILES['image_file'] ?? null;
+            
+            if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+                // Fallback to JSON/Base64 if someone is still using the old method
+                $data = json_decode(file_get_contents('php://input'), true);
+                if (isset($data['image'])) {
+                    return $this->handleBase64Upload($data['image']);
+                }
+                throw new Exception('No image file uploaded or upload error. Code: ' . ($file['error'] ?? 'none'));
             }
 
-            $img = str_replace(' ', '+', $img);
-            $fileData = base64_decode($img);
-            
-            if ($fileData === false) {
-                throw new Exception('Base64 decode failed');
-            }
-            
             $uploadDir = realpath(__DIR__ . '/../../../public/uploads') . DIRECTORY_SEPARATOR;
             if (!$uploadDir || !is_dir($uploadDir)) {
                 $uploadDir = __DIR__ . '/../../../public/uploads/';
@@ -200,12 +188,12 @@ class PosController extends Controller {
             $fileName = 'capture_' . uniqid() . '.png';
             $filePath = $uploadDir . $fileName;
             
-            if (file_put_contents($filePath, $fileData)) {
+            if (move_uploaded_file($file['tmp_name'], $filePath)) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => true, 'file_url' => '/uploads/' . $fileName]);
                 exit;
             } else {
-                throw new Exception('Failed to save file to disk');
+                throw new Exception('Failed to move uploaded file');
             }
         } catch (Exception $e) {
             error_log("Upload Capture Error: " . $e->getMessage());
@@ -213,5 +201,26 @@ class PosController extends Controller {
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
             exit;
         }
+    }
+
+    private function handleBase64Upload($img) {
+        if (preg_match('/^data:image\/(\w+);base64,/', $img, $type)) {
+            $img = substr($img, strpos($img, ',') + 1);
+        }
+        $img = str_replace(' ', '+', $img);
+        $fileData = base64_decode($img);
+        
+        $uploadDir = __DIR__ . '/../../../public/uploads/';
+        if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+        
+        $fileName = 'capture_' . uniqid() . '.png';
+        $filePath = $uploadDir . $fileName;
+        
+        if (file_put_contents($filePath, $fileData)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'file_url' => '/uploads/' . $fileName]);
+            exit;
+        }
+        throw new Exception('Base64 save failed');
     }
 }

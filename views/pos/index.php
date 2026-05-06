@@ -529,11 +529,24 @@ function posApp() {
         async confirmCapture() {
             this.loading = true;
             try {
-                console.log("Attempting to upload image...");
+                console.log("Attempting to upload image via Blob...");
+                
+                // Convert base64 to Blob
+                const base64Data = this.capturedImage.split(',')[1];
+                const byteCharacters = atob(base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {type: 'image/png'});
+
+                const formData = new FormData();
+                formData.append('image_file', blob, 'capture.png');
+
                 const response = await fetch(this.resolveUrl('/api/upload-capture'), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: this.capturedImage })
+                    body: formData
                 });
                 
                 const data = await response.json();
